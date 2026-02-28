@@ -28,6 +28,7 @@ type ServerConfig struct {
 type RemoteStrategyConfig struct {
 	URL          string        `yaml:"url"`
 	PollInterval time.Duration `yaml:"poll_interval"`
+	Expression   string        `yaml:"expression"`
 }
 
 // ProviderConfig configures a specific upstream provider
@@ -42,6 +43,7 @@ const DefaultConfigTemplate = `server:
 remote_strategy:
   url: "https://your-config-domain.com/strategy.json"
   poll_interval: 60s
+  expression: ""
 providers:
   openai:
     api_key: "sk-..."
@@ -55,6 +57,8 @@ providers:
   local_vllm:
     base_url: "http://192.168.1.100:8000/v1"
 `
+
+var GlobalConfig *Config
 
 // LoadLocalConfig loads configuration from LOCALROUTER_CONFIG_PATH or ~/.config/localrouter/config.yaml
 // If the configuration file doesn't exist, it creates a template for the user.
@@ -96,6 +100,8 @@ func LoadLocalConfig() (*Config, error) {
 	if err := yaml.Unmarshal(data, &conf); err != nil {
 		return nil, fmt.Errorf("failed to parse yaml config: %w", err)
 	}
+
+	GlobalConfig = &conf
 
 	return &conf, nil
 }
