@@ -1,0 +1,32 @@
+server:
+  port: 8080
+  # host: "0.0.0.0" # Use 0.0.0.0 for docker, or 127.0.0.1 for local testing.
+  host: "127.0.0.1"
+
+remote_strategy:
+  url: "https://your-config-domain.com/strategy.json"
+  poll_interval: 60s
+  
+  # Optional: If you want to use expr to dynamically route requests based on request contents.
+  # Example: Route to anthropic if prompt has more than 5 messages
+  # expression: "len(Req.Messages) > 5 ? 'anthropic' : 'openai'"
+  expression: ""
+
+providers:
+  openai:
+    api_key: "sk-..."
+    # base_url: "https://api.openai.com/v1"
+
+  anthropic:
+    api_key: "sk-ant-..."
+    # base_url: "https://api.anthropic.com/v1"
+
+  google:
+    api_key: "AIza..."
+
+  deepseek:
+    api_key: "sk-..."
+    base_url: "https://api.deepseek.com/v1"
+
+  local_vllm:
+    base_url: "http://192.168.1.100:8000/v1"

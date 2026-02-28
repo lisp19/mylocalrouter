@@ -20,6 +20,9 @@ docker-compose up -d
 By default, the server expects `LOCALROUTER_CONFIG_PATH` to point to a yaml file. 
 If no configuration file exists, the server automatically generates a template at `~/.config/localrouter/config.yaml`.
 
+Please refer to `config.example.yaml` in the repository root for a complete local configuration example.
+To implement remote dynamic strategy distribution via HTTP, see `strategy.example.json` for the expected JSON return structure.
+
 ## Usage
 Simply point your OpenAI client Base URL to `http://localhost:8080/v1` instead of `https://api.openai.com/v1`.
 
