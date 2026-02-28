@@ -1,0 +1,6 @@
+{
+    "strategy": "remote",
+    "local_model": "qwen-35b-awq",
+    "remote_model": "gemini-1.5-pro",
+    "updated_at": "2024-05-15T12:00:00Z"
+}
