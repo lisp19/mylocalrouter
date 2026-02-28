@@ -12,10 +12,11 @@ import (
 
 // RemoteStrategy represents the data structure returned by the remote origin.
 type RemoteStrategy struct {
-	Strategy    string `json:"strategy"`     // "local" or "remote"
-	LocalModel  string `json:"local_model"`  // e.g., "qwen-35b-awq"
-	RemoteModel string `json:"remote_model"` // e.g., "gemini-3-flash"
-	UpdatedAt   string `json:"updated_at"`
+	Strategy       string `json:"strategy"`        // "local" or "remote"
+	LocalModel     string `json:"local_model"`     // e.g., "qwen-35b-awq"
+	RemoteProvider string `json:"remote_provider"` // e.g., "google", "openai"
+	RemoteModel    string `json:"remote_model"`    // e.g., "gemini-3-flash"
+	UpdatedAt      string `json:"updated_at"`
 }
 
 // RemoteManager handles fetching and providing thread-safe access to the remote strategy
@@ -89,8 +90,8 @@ func (rm *RemoteManager) fetch() error {
 	}
 
 	rm.strategy.Store(&strategy)
-	log.Printf("[RemoteConfig] Strategy updated at %s: strategy=%s, local=%s, remote=%s",
-		time.Now().Format(time.RFC3339), strategy.Strategy, strategy.LocalModel, strategy.RemoteModel)
+	log.Printf("[RemoteConfig] Strategy updated at %s: strategy=%s, local=%s, remote_provider=%s, remote=%s",
+		time.Now().Format(time.RFC3339), strategy.Strategy, strategy.LocalModel, strategy.RemoteProvider, strategy.RemoteModel)
 
 	return nil
 }

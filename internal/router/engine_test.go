@@ -25,6 +25,7 @@ func (m *MockProvider) ChatCompletionStream(ctx context.Context, req *models.Cha
 func TestStrategyEngine_SelectProvider_Fallback(t *testing.T) {
 	pMap := map[string]providers.Provider{
 		"local_vllm": &MockProvider{name: "local_vllm"},
+		"google":     &MockProvider{name: "google"},
 		"openai":     &MockProvider{name: "openai"},
 	}
 	engine := NewEngine(pMap)
@@ -35,21 +36,34 @@ func TestStrategyEngine_SelectProvider_Fallback(t *testing.T) {
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
-	if p.Name() != "local_vllm" {
-		t.Errorf("expected fallback to local_vllm, got %s", p.Name())
+	if p.Name() != "google" {
+		t.Errorf("expected fallback to google, got %s", p.Name())
 	}
 	if model != "test-model" {
 		t.Errorf("expected model %s, got %s", "test-model", model)
 	}
 
-	// Test 2: Remote config defined strictly "remote"
-	rcfg := &config.RemoteStrategy{Strategy: "remote", RemoteModel: "gpt-4"}
+	// Test 2: Remote config defined strictly "remote" without explicit provider
+	rcfg := &config.RemoteStrategy{Strategy: "remote", RemoteModel: "gemini-test"}
 	p, model, err = engine.SelectProvider(req, rcfg)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
+	if p.Name() != "google" {
+		t.Errorf("expected default remote provider to be google, got %s", p.Name())
+	}
+	if model != "gemini-test" {
+		t.Errorf("expected model gemini-test, got %s", model)
+	}
+
+	// Test 2b: Remote config defined "remote" with explicit provider
+	rcfgOpenAI := &config.RemoteStrategy{Strategy: "remote", RemoteProvider: "openai", RemoteModel: "gpt-4"}
+	p, model, err = engine.SelectProvider(req, rcfgOpenAI)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
 	if p.Name() != "openai" {
-		t.Errorf("expected openai provider, got %s", p.Name())
+		t.Errorf("expected explicit remote provider to be openai, got %s", p.Name())
 	}
 	if model != "gpt-4" {
 		t.Errorf("expected model gpt-4, got %s", model)
@@ -84,7 +98,7 @@ func TestStrategyEngine_SelectProvider_Expression(t *testing.T) {
 	}
 	engine := NewEngine(pMap)
 
-	rcfg := &config.RemoteStrategy{Strategy: "remote", RemoteModel: "doesn't matter"}
+	rcfg := &config.RemoteStrategy{Strategy: "remote", RemoteModel: "gemini-test-remote"}
 
 	// Test Expr 1: messages > 2 -> anthropic
 	req1 := &models.ChatCompletionRequest{
@@ -102,8 +116,8 @@ func TestStrategyEngine_SelectProvider_Expression(t *testing.T) {
 	if p.Name() != "anthropic" {
 		t.Errorf("expected expr evaluation to anthropic, got %v", p.Name())
 	}
-	if model != "some-model" {
-		t.Errorf("expected model to remain 'some-model', got %v", model)
+	if model != "gemini-test-remote" {
+		t.Errorf("expected model changed to remoteModel limit, got %v", model)
 	}
 
 	// Test Expr 2: messages <= 2 -> google
@@ -120,7 +134,7 @@ func TestStrategyEngine_SelectProvider_Expression(t *testing.T) {
 	if p.Name() != "google" {
 		t.Errorf("expected expr evaluation to google, got %v", p.Name())
 	}
-	if model != "other-model" {
+	if model != "gemini-test-remote" {
 		t.Errorf("expected model to remain 'other-model', got %v", model)
 	}
 }
