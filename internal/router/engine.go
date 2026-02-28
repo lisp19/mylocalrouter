@@ -7,6 +7,8 @@ import (
 	"localrouter/internal/config"
 	"localrouter/internal/models"
 	"localrouter/internal/providers"
+
+	"github.com/expr-lang/expr"
 )
 
 // StrategyEngine directs a ChatCompletionRequest to the correct Provider based on the RemoteStrategy.
@@ -47,6 +49,31 @@ func (e *defaultEngine) SelectProvider(req *models.ChatCompletionRequest, remote
 	// program, _ := expr.Compile("Cfg.Strategy == 'remote' && len(Req.Messages) > 0", expr.Env(Env{}))
 	// res, _ := expr.Run(program, Env{Req: req, Cfg: remoteCfg})
 	// log.Printf("[Router] Expr Result: %v", res)
+
+	if config.GlobalConfig != nil && config.GlobalConfig.RemoteStrategy.Expression != "" {
+		program, err := expr.Compile(config.GlobalConfig.RemoteStrategy.Expression, expr.Env(Env{}))
+		if err == nil {
+			res, err := expr.Run(program, Env{Req: req, Cfg: remoteCfg})
+			if err == nil {
+				if providerName, ok := res.(string); ok {
+					if p, exists := e.providerMap[providerName]; exists {
+						targetModel := req.Model
+						if providerName == "openai" && remoteCfg != nil && remoteCfg.RemoteModel != "" {
+							targetModel = remoteCfg.RemoteModel
+						} else if providerName == "local_vllm" && remoteCfg != nil && remoteCfg.LocalModel != "" {
+							targetModel = remoteCfg.LocalModel
+						}
+						return p, targetModel, nil
+					}
+					log.Printf("[Router] Expr matched unknown provider: %v", providerName)
+				}
+			} else {
+				log.Printf("[Router] Expr Run Error: %v", err)
+			}
+		} else {
+			log.Printf("[Router] Expr Compile Error: %v", err)
+		}
+	}
 
 	// Since local_router.md says "based on remote JSON return ... local or remote", we evaluate strictly:
 	if remoteCfg.Strategy == "remote" {
