@@ -45,6 +45,8 @@ docker run -d \
     -p "$PORT:8080" \
     -v "$CONFIG_DIR:/app/config" \
     --restart unless-stopped \
+    --log-opt max-size=10m \
+    --log-opt max-file=3 \
     "$IMAGE_NAME"
 
 echo "LocalRouter is now running!"
