@@ -1,0 +1,25 @@
+name: Auto Tag Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  auto-tag:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # Needed to create tags
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: '0' # Need full history to list all tags
+
+      - name: Bump Version and Push Tag
+        uses: anothrNick/github-tag-action@1.67.0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WITH_V: "true"
+          DEFAULT_BUMP: "patch"
+          RELEASE_BRANCHES: "main"
