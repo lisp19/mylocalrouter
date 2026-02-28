@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -87,12 +88,12 @@ func mapRequest(req *models.ChatCompletionRequest) *anthropicRequest {
 			areq.System = m.Content
 			continue
 		}
-		
+
 		role := strings.ToLower(m.Role)
 		if role != "user" && role != "assistant" {
 			role = "user"
 		}
-		
+
 		areq.Messages = append(areq.Messages, anthropicMessage{
 			Role:    role,
 			Content: m.Content,
@@ -116,7 +117,11 @@ func (p *Provider) doRequest(ctx context.Context, endpoint string, body interfac
 	req.Header.Set("x-api-key", p.apiKey)
 	req.Header.Set("anthropic-version", "2023-06-01")
 
-	return p.client.Do(req)
+	resp, err := p.client.Do(req)
+	if err != nil {
+		slog.Error("Anthropic API network request failed", "error", err, "endpoint", endpoint)
+	}
+	return resp, err
 }
 
 func (p *Provider) ChatCompletion(ctx context.Context, req *models.ChatCompletionRequest) (*models.ChatCompletionResponse, error) {
@@ -130,7 +135,9 @@ func (p *Provider) ChatCompletion(ctx context.Context, req *models.ChatCompletio
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("anthropic api error: status %d", resp.StatusCode)
+		err := fmt.Errorf("anthropic api error: status %d", resp.StatusCode)
+		slog.Error("Anthropic API network request failed with status", "error", err)
+		return nil, err
 	}
 
 	var aresp anthropicResponse
@@ -183,7 +190,9 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *models.ChatCom
 
 	if resp.StatusCode != http.StatusOK {
 		resp.Body.Close()
-		return fmt.Errorf("anthropic api error: status %d", resp.StatusCode)
+		err := fmt.Errorf("anthropic api error: status %d", resp.StatusCode)
+		slog.Error("Anthropic API streaming network request failed with status", "error", err)
+		return err
 	}
 
 	go func() {
@@ -195,21 +204,21 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *models.ChatCom
 			if err := json.Unmarshal(data, &event); err != nil {
 				return err // Ignore decode errors on partial chunks
 			}
-			
+
 			if event.Type == "content_block_delta" && event.Delta.Type == "text_delta" {
 				var chunk models.ChatCompletionStreamResponse
 				chunk.ID = fmt.Sprintf("chatcmpl-claude-%d", time.Now().UnixNano())
 				chunk.Object = "chat.completion.chunk"
 				chunk.Created = time.Now().Unix()
 				chunk.Model = req.Model
-				
+
 				delta := struct {
 					Role    string `json:"role,omitempty"`
 					Content string `json:"content,omitempty"`
 				}{
 					Content: event.Delta.Text,
 				}
-				
+
 				chunk.Choices = []struct {
 					Index int `json:"index"`
 					Delta struct {
@@ -232,7 +241,7 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *models.ChatCom
 		})
 
 		if err != nil && err != context.Canceled {
-			fmt.Printf("[Anthropic] Stream error: %v\n", err)
+			slog.Error("Anthropic Stream error", "error", err)
 		}
 	}()
 

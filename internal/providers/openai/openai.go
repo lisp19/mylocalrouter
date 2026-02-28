@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"net/http"
 	"strings"
 
@@ -54,7 +55,11 @@ func (p *Provider) postRequest(ctx context.Context, endpoint string, reqBody int
 		req.Header.Set("Authorization", "Bearer "+p.apiKey)
 	}
 
-	return p.client.Do(req)
+	resp, err := p.client.Do(req)
+	if err != nil {
+		slog.Error("OpenAI API network request failed", "error", err, "provider", p.name, "endpoint", endpoint)
+	}
+	return resp, err
 }
 
 func (p *Provider) ChatCompletion(ctx context.Context, req *models.ChatCompletionRequest) (*models.ChatCompletionResponse, error) {
@@ -66,7 +71,9 @@ func (p *Provider) ChatCompletion(ctx context.Context, req *models.ChatCompletio
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("provider returned status %d", resp.StatusCode)
+		err := fmt.Errorf("provider returned status %d", resp.StatusCode)
+		slog.Error("OpenAI API network request failed with status", "error", err, "provider", p.name)
+		return nil, err
 	}
 
 	var completion models.ChatCompletionResponse
@@ -86,7 +93,9 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *models.ChatCom
 
 	if resp.StatusCode != http.StatusOK {
 		resp.Body.Close()
-		return fmt.Errorf("provider returned status %d", resp.StatusCode)
+		err := fmt.Errorf("provider returned status %d", resp.StatusCode)
+		slog.Error("OpenAI API streaming network request failed with status", "error", err, "provider", p.name)
+		return err
 	}
 
 	go func() {
@@ -105,9 +114,9 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *models.ChatCom
 				return nil
 			}
 		})
-		
+
 		if err != nil && err != context.Canceled {
-			fmt.Printf("[%s] Stream error: %v\n", p.name, err)
+			slog.Error("OpenAI Stream error", "error", err, "provider", p.name)
 		}
 	}()
 

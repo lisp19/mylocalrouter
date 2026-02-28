@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
+	"log/slog"
 	"net/http"
 	"sync/atomic"
 	"time"
@@ -45,7 +45,7 @@ func NewRemoteManager(url string, interval time.Duration) *RemoteManager {
 func (rm *RemoteManager) Start() {
 	// Execute immediately once
 	if err := rm.fetch(); err != nil {
-		log.Printf("[RemoteConfig] Initial fetch failed: %v", err)
+		slog.Error("RemoteConfig initial fetch failed", "error", err)
 	}
 
 	go func() {
@@ -53,7 +53,7 @@ func (rm *RemoteManager) Start() {
 		defer ticker.Stop()
 		for range ticker.C {
 			if err := rm.fetch(); err != nil {
-				log.Printf("[RemoteConfig] Fetch error: %v", err)
+				slog.Error("RemoteConfig fetch error", "error", err)
 			}
 		}
 	}()
@@ -90,8 +90,7 @@ func (rm *RemoteManager) fetch() error {
 	}
 
 	rm.strategy.Store(&strategy)
-	log.Printf("[RemoteConfig] Strategy updated at %s: strategy=%s, local=%s, remote_provider=%s, remote=%s",
-		time.Now().Format(time.RFC3339), strategy.Strategy, strategy.LocalModel, strategy.RemoteProvider, strategy.RemoteModel)
+	slog.Info("RemoteConfig strategy updated", "strategy", strategy.Strategy, "local_model", strategy.LocalModel, "remote_provider", strategy.RemoteProvider, "remote_model", strategy.RemoteModel)
 
 	return nil
 }
