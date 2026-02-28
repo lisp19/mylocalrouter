@@ -27,3 +27,8 @@ docker-compose up -d
 系统首次启动如果找不到配置文件，会自动在系统配置目录（或 `LOCALROUTER_CONFIG_PATH` 指定的地址）生成基础 YAML 模板。
 
 通过修改配置能够将策略路由交由远端网端托管查询。
+
+## 开发说明
+本项目采用标准的分支管理策略。`main` 分支保持稳定，所有日常功能的添加和修改均在 `dev` 分支上进行。
+
+**致谢**：本项目在 [Google Antigravity](https://ai.google.dev/) 的辅助下完成开发。
