@@ -22,3 +22,8 @@ If no configuration file exists, the server automatically generates a template a
 
 ## Usage
 Simply point your OpenAI client Base URL to `http://localhost:8080/v1` instead of `https://api.openai.com/v1`.
+
+## Development
+This project follows a standard branching strategy. The `main` branch is for stable releases, and all active development occurs on the `dev` branch.
+
+**Acknowledgements**: This project is assisted by [Google Antigravity](https://ai.google.dev/).
