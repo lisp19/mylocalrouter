@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
 	"strings"
 	"time"
@@ -61,7 +62,7 @@ type geminiResponse struct {
 
 func mapRequest(req *models.ChatCompletionRequest) *geminiRequest {
 	greq := &geminiRequest{}
-	
+
 	for _, m := range req.Messages {
 		role := strings.ToLower(m.Role)
 		// Gemini only supports "user" and "model"
@@ -99,13 +100,18 @@ func (p *Provider) ChatCompletion(ctx context.Context, req *models.ChatCompletio
 
 	resp, err := p.client.Do(hreq)
 	if err != nil {
-		return nil, err
+		safeErr := strings.ReplaceAll(err.Error(), p.apiKey, "***")
+		slog.Error("Google API network request failed", "error", safeErr, "model", req.Model)
+		return nil, fmt.Errorf("%s", safeErr)
 	}
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("google api error %d: %s", resp.StatusCode, string(body))
+		err := fmt.Errorf("google api error %d: %s", resp.StatusCode, string(body))
+		safeErr := strings.ReplaceAll(err.Error(), p.apiKey, "***")
+		slog.Error("Google API network request failed with status", "error", safeErr, "model", req.Model)
+		return nil, fmt.Errorf("%s", safeErr)
 	}
 
 	var gresp geminiResponse
@@ -154,13 +160,18 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *models.ChatCom
 
 	resp, err := p.client.Do(hreq)
 	if err != nil {
-		return err
+		safeErr := strings.ReplaceAll(err.Error(), p.apiKey, "***")
+		slog.Error("Google API streaming network request failed", "error", safeErr, "model", req.Model)
+		return fmt.Errorf("%s", safeErr)
 	}
 
 	if resp.StatusCode != http.StatusOK {
 		body, _ := io.ReadAll(resp.Body)
 		resp.Body.Close()
-		return fmt.Errorf("google api error %d: %s", resp.StatusCode, string(body))
+		err := fmt.Errorf("google api error %d: %s", resp.StatusCode, string(body))
+		safeErr := strings.ReplaceAll(err.Error(), p.apiKey, "***")
+		slog.Error("Google API streaming network request failed with status", "error", safeErr, "model", req.Model)
+		return fmt.Errorf("%s", safeErr)
 	}
 
 	go func() {
@@ -182,7 +193,7 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *models.ChatCom
 				if bytes.Equal(payload, []byte("[DONE]")) {
 					break
 				}
-				
+
 				var gresp geminiResponse
 				if err := json.Unmarshal(payload, &gresp); err != nil {
 					continue
@@ -221,7 +232,8 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *models.ChatCom
 		}
 
 		if err := scanner.Err(); err != nil && err != context.Canceled {
-			fmt.Printf("[Google] Stream error: %v\n", err)
+			safeErr := strings.ReplaceAll(err.Error(), p.apiKey, "***")
+			slog.Error("Google Stream error", "error", safeErr)
 		}
 	}()
 
