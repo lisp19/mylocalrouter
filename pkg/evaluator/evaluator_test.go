@@ -50,18 +50,25 @@ func TestBuiltinLengthEvaluator(t *testing.T) {
 	}
 }
 
-func TestLLMAPIEvaluator(t *testing.T) {
-	// Mock OpenAI server
+// TestLLMAPIEvaluatorOllama tests the default Ollama protocol path
+func TestLLMAPIEvaluatorOllama(t *testing.T) {
 	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		var req struct {
 			Messages []struct {
 				Content string `json:"content"`
 			} `json:"messages"`
-			LogitBias map[string]int `json:"logit_bias"`
+			Think  bool `json:"think"`
+			Stream bool `json:"stream"`
 		}
 		json.NewDecoder(r.Body).Decode(&req)
 
-		// Check if template rendered properly (this is simplistic verification)
+		if req.Think != false {
+			t.Errorf("expected think=false for ollama protocol")
+		}
+		if req.Stream != false {
+			t.Errorf("expected stream=false for ollama protocol")
+		}
+
 		if len(req.Messages) == 0 {
 			w.WriteHeader(http.StatusBadRequest)
 			return
@@ -73,6 +80,71 @@ func TestLLMAPIEvaluator(t *testing.T) {
 			score = "1"
 		}
 
+		// Ollama /api/chat response format
+		resp := map[string]interface{}{
+			"message": map[string]string{
+				"role":    "assistant",
+				"content": score,
+			},
+			"done": true,
+		}
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer mockServer.Close()
+
+	eval, err := NewLLMAPIEvaluator(config.EvaluatorConfig{
+		Name:           "test_llm_ollama",
+		Endpoint:       mockServer.URL,
+		Model:          "qwen-0.6b",
+		TimeoutMs:      1000,
+		PromptTemplate: "Context: {{.History}}\nQuery: {{.Current}}",
+		HistoryRounds:  1,
+		// Protocol defaults to "ollama"
+	})
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+
+	msgs := []models.Message{
+		{Role: "user", Content: "Hello"},
+		{Role: "assistant", Content: "Hi!"},
+		{Role: "user", Content: "Short text"},
+	}
+
+	res, err := eval.Evaluate(context.Background(), msgs)
+	if err != nil {
+		t.Fatalf("unexpected err: %v", err)
+	}
+	if res.Dimension != "test_llm_ollama" {
+		t.Errorf("expected test_llm_ollama")
+	}
+	if res.Score != 1 {
+		t.Errorf("expected score 1, got %v", res.Score)
+	}
+}
+
+// TestLLMAPIEvaluatorOpenAI tests the OpenAI protocol path
+func TestLLMAPIEvaluatorOpenAI(t *testing.T) {
+	mockServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Messages []struct {
+				Content string `json:"content"`
+			} `json:"messages"`
+		}
+		json.NewDecoder(r.Body).Decode(&req)
+
+		if len(req.Messages) == 0 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+
+		content := req.Messages[0].Content
+		score := "0"
+		if len(content) > 30 {
+			score = "1"
+		}
+
+		// OpenAI response format
 		resp := map[string]interface{}{
 			"choices": []map[string]interface{}{
 				{
@@ -82,13 +154,13 @@ func TestLLMAPIEvaluator(t *testing.T) {
 				},
 			},
 		}
-
 		json.NewEncoder(w).Encode(resp)
 	}))
 	defer mockServer.Close()
 
 	eval, err := NewLLMAPIEvaluator(config.EvaluatorConfig{
-		Name:           "test_llm",
+		Name:           "test_llm_openai",
+		Protocol:       "openai",
 		Endpoint:       mockServer.URL,
 		Model:          "qwen-0.6b",
 		TimeoutMs:      1000,
@@ -102,15 +174,15 @@ func TestLLMAPIEvaluator(t *testing.T) {
 	msgs := []models.Message{
 		{Role: "user", Content: "Hello"},
 		{Role: "assistant", Content: "Hi!"},
-		{Role: "user", Content: "Short text"}, // total len of this rendered will be Context: user: Hello\nassistant: Hi!\n\nQuery: Short text => length is > 30 => should score 1
+		{Role: "user", Content: "Short text"},
 	}
 
 	res, err := eval.Evaluate(context.Background(), msgs)
 	if err != nil {
 		t.Fatalf("unexpected err: %v", err)
 	}
-	if res.Dimension != "test_llm" {
-		t.Errorf("expected test_llm")
+	if res.Dimension != "test_llm_openai" {
+		t.Errorf("expected test_llm_openai")
 	}
 	if res.Score != 1 {
 		t.Errorf("expected score 1, got %v", res.Score)

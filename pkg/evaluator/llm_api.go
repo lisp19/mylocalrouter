@@ -22,6 +22,7 @@ type LLMAPIEvaluator struct {
 	name          string
 	endpoint      string
 	model         string
+	protocol      string // "ollama" or "openai"
 	historyRounds int
 	timeoutMs     int
 	logitBias     map[string]int
@@ -45,10 +46,16 @@ func NewLLMAPIEvaluator(cfg config.EvaluatorConfig) (*LLMAPIEvaluator, error) {
 		timeout = time.Duration(cfg.TimeoutMs) * time.Millisecond
 	}
 
+	protocol := cfg.Protocol
+	if protocol == "" {
+		protocol = "ollama"
+	}
+
 	return &LLMAPIEvaluator{
 		name:          cfg.Name,
 		endpoint:      cfg.Endpoint,
 		model:         cfg.Model,
+		protocol:      protocol,
 		historyRounds: cfg.HistoryRounds,
 		timeoutMs:     cfg.TimeoutMs,
 		logitBias:     cfg.LogitBias,
@@ -95,28 +102,18 @@ func (e *LLMAPIEvaluator) Evaluate(ctx context.Context, messages []models.Messag
 		return nil, fmt.Errorf("template rendering failed: %w", err)
 	}
 
-	// Prepare OpenAI request body
-	reqBody := map[string]interface{}{
-		"model": e.model,
-		"messages": []map[string]string{
-			{
-				"role":    "user",
-				"content": promptBuf.String(),
-			},
-		},
-		"temperature":      0.0,
-		"max_tokens":       150, // Allow enough tokens for models with reasoning
-		"disable_thinking": true,
-		"think":            false, // New standard for Ollama to disable reasoning
-	}
-	if len(e.logitBias) > 0 {
-		reqBody["logit_bias"] = e.logitBias
-	}
+	var reqBytes []byte
+	var err error
 
-	reqBytes, err := json.Marshal(reqBody)
+	if e.protocol == "ollama" {
+		reqBytes, err = e.buildOllamaRequest(promptBuf.String())
+	} else {
+		reqBytes, err = e.buildOpenAIRequest(promptBuf.String())
+	}
 	if err != nil {
 		return nil, err
 	}
+
 	logger.Printf("[Evaluator %s] Verbose Input: %s", e.name, string(reqBytes))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, e.endpoint, bytes.NewReader(reqBytes))
@@ -142,27 +139,22 @@ func (e *LLMAPIEvaluator) Evaluate(ctx context.Context, messages []models.Messag
 	}
 	logger.Printf("[Evaluator %s] Verbose Output: %s", e.name, string(bodyBytes))
 
-	var openAIResp struct {
-		Choices []struct {
-			Message struct {
-				Content string `json:"content"`
-			} `json:"message"`
-		} `json:"choices"`
+	var content string
+	if e.protocol == "ollama" {
+		content, err = parseOllamaContent(bodyBytes)
+	} else {
+		content, err = parseOpenAIContent(bodyBytes)
+	}
+	if err != nil {
+		return nil, err
 	}
 
-	if err := json.Unmarshal(bodyBytes, &openAIResp); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
-	}
-
-	if len(openAIResp.Choices) == 0 {
-		return nil, fmt.Errorf("empty choices in response")
-	}
-
-	content := strings.TrimSpace(openAIResp.Choices[0].Message.Content)
+	content = strings.TrimSpace(content)
 	if content == "" {
-		return nil, fmt.Errorf("empty content in response, possibly pure reasoning")
+		return nil, fmt.Errorf("empty content in response")
 	}
-	// Models might output more than just '0' or '1', let's find the first character that is a digit
+
+	// Extract the first digit from the content
 	var scoreStr string
 	for _, c := range content {
 		if c >= '0' && c <= '9' {
@@ -183,4 +175,76 @@ func (e *LLMAPIEvaluator) Evaluate(ctx context.Context, messages []models.Messag
 		Dimension: e.name,
 		Score:     score,
 	}, nil
+}
+
+// buildOllamaRequest constructs a request body for the Ollama /api/chat endpoint
+func (e *LLMAPIEvaluator) buildOllamaRequest(prompt string) ([]byte, error) {
+	reqBody := map[string]interface{}{
+		"model": e.model,
+		"messages": []map[string]string{
+			{
+				"role":    "user",
+				"content": prompt,
+			},
+		},
+		"stream": false,
+		"think":  false, // Disable reasoning for Ollama thinking models
+		"options": map[string]interface{}{
+			"temperature": 0.0,
+			"num_predict": 1,
+		},
+	}
+	return json.Marshal(reqBody)
+}
+
+// buildOpenAIRequest constructs a request body for the OpenAI /v1/chat/completions endpoint
+func (e *LLMAPIEvaluator) buildOpenAIRequest(prompt string) ([]byte, error) {
+	reqBody := map[string]interface{}{
+		"model": e.model,
+		"messages": []map[string]string{
+			{
+				"role":    "user",
+				"content": prompt,
+			},
+		},
+		"temperature":      0.0,
+		"max_tokens":       150, // Allow enough tokens for models with reasoning
+		"disable_thinking": true,
+		"think":            false,
+	}
+	if len(e.logitBias) > 0 {
+		reqBody["logit_bias"] = e.logitBias
+	}
+	return json.Marshal(reqBody)
+}
+
+// parseOllamaContent extracts the response content from an Ollama /api/chat response
+func parseOllamaContent(body []byte) (string, error) {
+	var ollamaResp struct {
+		Message struct {
+			Content string `json:"content"`
+		} `json:"message"`
+	}
+	if err := json.Unmarshal(body, &ollamaResp); err != nil {
+		return "", fmt.Errorf("failed to decode Ollama response: %w", err)
+	}
+	return ollamaResp.Message.Content, nil
+}
+
+// parseOpenAIContent extracts the response content from an OpenAI /v1/chat/completions response
+func parseOpenAIContent(body []byte) (string, error) {
+	var openAIResp struct {
+		Choices []struct {
+			Message struct {
+				Content string `json:"content"`
+			} `json:"message"`
+		} `json:"choices"`
+	}
+	if err := json.Unmarshal(body, &openAIResp); err != nil {
+		return "", fmt.Errorf("failed to decode OpenAI response: %w", err)
+	}
+	if len(openAIResp.Choices) == 0 {
+		return "", fmt.Errorf("empty choices in response")
+	}
+	return openAIResp.Choices[0].Message.Content, nil
 }
