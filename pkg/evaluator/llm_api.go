@@ -107,6 +107,7 @@ func (e *LLMAPIEvaluator) Evaluate(ctx context.Context, messages []models.Messag
 		"temperature":      0.0,
 		"max_tokens":       150, // Allow enough tokens for models with reasoning
 		"disable_thinking": true,
+		"think":            false, // New standard for Ollama to disable reasoning
 	}
 	if len(e.logitBias) > 0 {
 		reqBody["logit_bias"] = e.logitBias

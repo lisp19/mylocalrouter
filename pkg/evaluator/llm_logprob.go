@@ -102,6 +102,7 @@ func (e *LLMLogprobEvaluator) Evaluate(ctx context.Context, messages []models.Me
 		"logprobs":         true,
 		"top_logprobs":     2, // We need at least the top 2 logprobs to calculate the softmax
 		"disable_thinking": true,
+		"think":            false, // New standard for Ollama to disable reasoning
 	}
 	if len(e.logitBias) > 0 {
 		reqBody["logit_bias"] = e.logitBias
