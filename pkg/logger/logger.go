@@ -58,6 +58,12 @@ func Warn(msg string, args ...any)  { log(slog.LevelWarn, msg, args...) }
 func Error(msg string, args ...any) { log(slog.LevelError, msg, args...) }
 func Debug(msg string, args ...any) { log(slog.LevelDebug, msg, args...) }
 
+// Format-string convenience methods for each log level
+func Infof(format string, args ...any)  { logf(slog.LevelInfo, format, args...) }
+func Warnf(format string, args ...any)  { logf(slog.LevelWarn, format, args...) }
+func Errorf(format string, args ...any) { logf(slog.LevelError, format, args...) }
+func Debugf(format string, args ...any) { logf(slog.LevelDebug, format, args...) }
+
 // Compatible methods for existing log.Printf and log.Fatalf usages
 func Printf(format string, args ...any) { logf(slog.LevelInfo, format, args...) }
 func Fatalf(format string, args ...any) {

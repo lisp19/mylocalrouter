@@ -126,7 +126,7 @@ func (e *LLMLogprobEvaluator) evaluateOllama(ctx context.Context, prompt string)
 	if err != nil {
 		return nil, err
 	}
-	logger.Printf("[Evaluator %s] Verbose Input: %s", e.name, string(reqBytes))
+	logger.Debugf("[Evaluator %s] Verbose Input: %s", e.name, string(reqBytes))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, e.endpoint, bytes.NewReader(reqBytes))
 	if err != nil {
@@ -149,7 +149,7 @@ func (e *LLMLogprobEvaluator) evaluateOllama(ctx context.Context, prompt string)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-	logger.Printf("[Evaluator %s] Verbose Output: %s", e.name, string(bodyBytes))
+	logger.Debugf("[Evaluator %s] Verbose Output: %s", e.name, string(bodyBytes))
 
 	content, err := parseOllamaContent(bodyBytes)
 	if err != nil {
@@ -208,7 +208,7 @@ func (e *LLMLogprobEvaluator) evaluateOpenAI(ctx context.Context, prompt string)
 	if err != nil {
 		return nil, err
 	}
-	logger.Printf("[Evaluator %s] Verbose Input: %s", e.name, string(reqBytes))
+	logger.Debugf("[Evaluator %s] Verbose Input: %s", e.name, string(reqBytes))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, e.endpoint, bytes.NewReader(reqBytes))
 	if err != nil {
@@ -231,7 +231,7 @@ func (e *LLMLogprobEvaluator) evaluateOpenAI(ctx context.Context, prompt string)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-	logger.Printf("[Evaluator %s] Verbose Output: %s", e.name, string(bodyBytes))
+	logger.Debugf("[Evaluator %s] Verbose Output: %s", e.name, string(bodyBytes))
 
 	type TopLogprob struct {
 		Token   string  `json:"token"`

@@ -33,7 +33,7 @@ func EvaluateAll(ctx context.Context, msgs []models.Message, globalTimeoutMs int
 		g.Go(func() error {
 			res, err := ev.Evaluate(ctx, msgs)
 			if err != nil {
-				logger.Printf("Evaluator %s failed or timed out: %v", ev.Name(), err)
+				logger.Warnf("Evaluator %s failed or timed out: %v", ev.Name(), err)
 				return nil // do not fail the group, graceful degradation
 			}
 			mu.Lock()
@@ -59,9 +59,9 @@ func EvaluateAll(ctx context.Context, msgs []models.Message, globalTimeoutMs int
 		for _, k := range keys {
 			parts = append(parts, fmt.Sprintf("%s: %.4f", k, results[k]))
 		}
-		logger.Printf("[Evaluator] Intent Vector: {%s}", strings.Join(parts, ", "))
+		logger.Infof("[Evaluator] Intent Vector: {%s}", strings.Join(parts, ", "))
 	} else {
-		logger.Printf("[Evaluator] Intent Vector: {} (all evaluators failed or timed out)")
+		logger.Warnf("[Evaluator] Intent Vector: {} (all evaluators failed or timed out)")
 	}
 
 	return results

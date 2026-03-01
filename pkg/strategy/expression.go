@@ -28,7 +28,7 @@ func NewExpressionResolver(cfg config.ResolutionStrategyConfig) *ExpressionResol
 		// Compile expression once at startup
 		program, err := expr.Compile(rule.Condition, expr.AllowUndefinedVariables())
 		if err != nil {
-			logger.Printf("[Strategy] Failed to compile expression %q: %v", rule.Condition, err)
+			logger.Errorf("[Strategy] Failed to compile expression %q: %v", rule.Condition, err)
 			continue
 		}
 

@@ -110,7 +110,7 @@ func LoadLocalConfig() (*Config, error) {
 
 	// Check if file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		logger.Printf("Config file missing at %s, creating default template...", configPath)
+		logger.Warnf("Config file missing at %s, creating default template...", configPath)
 		if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
 			return nil, fmt.Errorf("failed to create config directory: %w", err)
 		}

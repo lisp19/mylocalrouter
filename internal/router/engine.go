@@ -34,13 +34,13 @@ func NewEngine(pMap map[string]providers.Provider) StrategyEngine {
 				if ev, err := evaluator.NewLLMAPIEvaluator(eCfg); err == nil {
 					evals = append(evals, ev)
 				} else {
-					logger.Printf("[Router] Failed to init LLM API Evaluator %s: %v", eCfg.Name, err)
+					logger.Errorf("[Router] Failed to init LLM API Evaluator %s: %v", eCfg.Name, err)
 				}
 			} else if eCfg.Type == "llm_logprob_api" {
 				if ev, err := evaluator.NewLLMLogprobEvaluator(eCfg); err == nil {
 					evals = append(evals, ev)
 				} else {
-					logger.Printf("[Router] Failed to init LLM Logprob API Evaluator %s: %v", eCfg.Name, err)
+					logger.Errorf("[Router] Failed to init LLM Logprob API Evaluator %s: %v", eCfg.Name, err)
 				}
 			} else if eCfg.Type == "builtin" {
 				evals = append(evals, evaluator.NewBuiltinLengthEvaluator(eCfg))
@@ -89,13 +89,13 @@ func (e *defaultEngine) SelectProvider(req *models.ChatCompletionRequest, remote
 				}
 				return p, targetModel, nil
 			}
-			logger.Printf("[Router] Generative Routing fallback provider %s not found, continuing to normal routing...", targetProvider)
+			logger.Warnf("[Router] Generative Routing fallback provider %s not found, continuing to normal routing...", targetProvider)
 		}
 	}
 
 	// Fallback if no strategy defined
 	if remoteCfg == nil || remoteCfg.Strategy == "" {
-		logger.Printf("[Router] No remote strategy defined, defaulting to google")
+		logger.Warnf("[Router] No remote strategy defined, defaulting to google")
 		if p, ok := e.providerMap["google"]; ok {
 			return p, req.Model, nil
 		}
@@ -131,13 +131,13 @@ func (e *defaultEngine) SelectProvider(req *models.ChatCompletionRequest, remote
 
 						return p, targetModel, nil
 					}
-					logger.Printf("[Router] Expr matched unknown provider: %v", providerName)
+					logger.Warnf("[Router] Expr matched unknown provider: %v", providerName)
 				}
 			} else {
-				logger.Printf("[Router] Expr Run Error: %v", err)
+				logger.Errorf("[Router] Expr Run Error: %v", err)
 			}
 		} else {
-			logger.Printf("[Router] Expr Compile Error: %v", err)
+			logger.Errorf("[Router] Expr Compile Error: %v", err)
 		}
 	}
 
