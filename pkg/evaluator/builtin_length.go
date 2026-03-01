@@ -7,6 +7,7 @@ import (
 
 	"agentic-llm-gateway/internal/config"
 	"agentic-llm-gateway/internal/models"
+	"agentic-llm-gateway/pkg/logger"
 )
 
 // BuiltinLengthEvaluator evaluates the length of the latest message
@@ -40,6 +41,7 @@ func (e *BuiltinLengthEvaluator) Evaluate(ctx context.Context, messages []models
 	lastMsg := messages[len(messages)-1]
 
 	trimmed := strings.TrimSpace(lastMsg.Content)
+	logger.Printf("[Evaluator %s] Verbose Input Message: %s", e.name, trimmed)
 	length := len([]rune(trimmed))
 
 	// If length is greater than or equal to threshold, it's considered "complex" (score 1.0)
@@ -48,6 +50,8 @@ func (e *BuiltinLengthEvaluator) Evaluate(ctx context.Context, messages []models
 	if length >= e.threshold {
 		score = 1.0
 	}
+
+	logger.Printf("[Evaluator %s] Verbose Output Score: %f", e.name, score)
 
 	return &EvaluationResult{
 		Dimension: e.name,
