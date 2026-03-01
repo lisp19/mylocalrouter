@@ -1,12 +1,15 @@
 package router
 
 import (
+	"context"
 	"fmt"
 	"log"
 
 	"localrouter/internal/config"
 	"localrouter/internal/models"
 	"localrouter/internal/providers"
+
+	"localrouter/pkg/evaluator"
 
 	"github.com/expr-lang/expr"
 )
@@ -18,11 +21,29 @@ type StrategyEngine interface {
 
 type defaultEngine struct {
 	providerMap map[string]providers.Provider
+	evaluators  []evaluator.Evaluator
 }
 
 // NewEngine initializes a routing expression engine.
 func NewEngine(pMap map[string]providers.Provider) StrategyEngine {
-	return &defaultEngine{providerMap: pMap}
+	var evals []evaluator.Evaluator
+	if config.GlobalConfig != nil && config.GlobalConfig.GenerativeRouting != nil && config.GlobalConfig.GenerativeRouting.Enabled {
+		for _, eCfg := range config.GlobalConfig.GenerativeRouting.Evaluators {
+			if eCfg.Type == "llm_api" {
+				if ev, err := evaluator.NewLLMAPIEvaluator(eCfg); err == nil {
+					evals = append(evals, ev)
+				} else {
+					log.Printf("[Router] Failed to init LLM API Evaluator %s: %v", eCfg.Name, err)
+				}
+			} else if eCfg.Type == "builtin" {
+				evals = append(evals, evaluator.NewBuiltinLengthEvaluator(eCfg))
+			}
+		}
+	}
+	return &defaultEngine{
+		providerMap: pMap,
+		evaluators:  evals,
+	}
 }
 
 // Env is the environment passed into the expression engine
@@ -32,6 +53,39 @@ type Env struct {
 }
 
 func (e *defaultEngine) SelectProvider(req *models.ChatCompletionRequest, remoteCfg *config.RemoteStrategy) (providers.Provider, string, error) {
+	// Generative Smart Routing
+	if config.GlobalConfig != nil && config.GlobalConfig.GenerativeRouting != nil && config.GlobalConfig.GenerativeRouting.Enabled && len(e.evaluators) > 0 {
+		ctx := context.Background() // A real implementation would pass request context
+		genCfg := config.GlobalConfig.GenerativeRouting
+		vectors := evaluator.EvaluateAll(ctx, req.Messages, genCfg.GlobalTimeoutMs, e.evaluators)
+
+		// Temporary strict local first logic until Stage 5 Resolver is implemented
+		targetProvider := ""
+		if len(vectors) == len(e.evaluators) { // vectors are complete
+			allZero := true
+			for _, score := range vectors {
+				if score > 0 {
+					allZero = false
+					break
+				}
+			}
+			if allZero {
+				targetProvider = "local_vllm" // Example local provider
+			}
+		}
+
+		if targetProvider == "" {
+			targetProvider = genCfg.FallbackProvider
+		}
+
+		if targetProvider != "" {
+			if p, ok := e.providerMap[targetProvider]; ok {
+				return p, req.Model, nil
+			}
+			log.Printf("[Router] Generative Routing fallback provider %s not found, continuing to normal routing...", targetProvider)
+		}
+	}
+
 	// Fallback if no strategy defined
 	if remoteCfg == nil || remoteCfg.Strategy == "" {
 		log.Printf("[Router] No remote strategy defined, defaulting to google")
