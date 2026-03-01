@@ -11,14 +11,21 @@ import (
 	"agentic-llm-gateway/internal/router"
 )
 
+// StrategyManager is the read-only interface the Server needs from RemoteManager.
+// Using an interface keeps the server package decoupled from config internals
+// and simplifies unit testing.
+type StrategyManager interface {
+	GetStrategy() *config.RemoteStrategy
+}
+
 // Server encapsulates the HTTP handler and routing logic
 type Server struct {
-	rm     *config.RemoteManager
+	rm     StrategyManager
 	engine router.StrategyEngine
 }
 
-// NewServer initializes the HTTP gateway.
-func NewServer(rm *config.RemoteManager, engine router.StrategyEngine) *Server {
+// NewServer initialises the HTTP gateway.
+func NewServer(rm StrategyManager, engine router.StrategyEngine) *Server {
 	return &Server{
 		rm:     rm,
 		engine: engine,
