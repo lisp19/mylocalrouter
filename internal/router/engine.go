@@ -10,6 +10,7 @@ import (
 	"localrouter/internal/providers"
 
 	"localrouter/pkg/evaluator"
+	"localrouter/pkg/strategy"
 
 	"github.com/expr-lang/expr"
 )
@@ -59,19 +60,11 @@ func (e *defaultEngine) SelectProvider(req *models.ChatCompletionRequest, remote
 		genCfg := config.GlobalConfig.GenerativeRouting
 		vectors := evaluator.EvaluateAll(ctx, req.Messages, genCfg.GlobalTimeoutMs, e.evaluators)
 
-		// Temporary strict local first logic until Stage 5 Resolver is implemented
+		// Stage 5 Resolver usage
+		resolver := strategy.NewResolver(genCfg.Resolution)
 		targetProvider := ""
-		if len(vectors) == len(e.evaluators) { // vectors are complete
-			allZero := true
-			for _, score := range vectors {
-				if score > 0 {
-					allZero = false
-					break
-				}
-			}
-			if allZero {
-				targetProvider = "local_vllm" // Example local provider
-			}
+		if resolver != nil {
+			targetProvider = resolver.Resolve(vectors)
 		}
 
 		if targetProvider == "" {
