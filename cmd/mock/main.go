@@ -1,9 +1,9 @@
 package main
 
 import (
+	"agentic-llm-gateway/pkg/logger"
 	"context"
 	"fmt"
-	"agentic-llm-gateway/pkg/logger"
 	"time"
 
 	"agentic-llm-gateway/internal/config"
@@ -46,7 +46,7 @@ func (p *MockProvider) ChatCompletionStream(ctx context.Context, req *models.Cha
 	go func() {
 		defer close(streamChan)
 		words := []string{"Hello!", " I", " am", " a", " mock", " streaming", " assistant.", " How", " can", " I", " help?"}
-		
+
 		for i, word := range words {
 			select {
 			case <-ctx.Done():
@@ -58,7 +58,7 @@ func (p *MockProvider) ChatCompletionStream(ctx context.Context, req *models.Cha
 					reason := "stop"
 					finishReason = &reason
 				}
-				
+
 				streamChan <- &models.ChatCompletionStreamResponse{
 					ID:      "chatcmpl-mock-stream",
 					Object:  "chat.completion.chunk",
@@ -93,10 +93,10 @@ func main() {
 	}
 
 	engine := router.NewEngine(providerMap)
-	
+
 	// Create a dummy remote manager that just returns the mock provider
-	rm := config.NewRemoteManager("", 0)
-	
+	rm := config.NewRemoteManager("", 0, nil)
+
 	// Inject fake strategy so router picks mock
 	// Note: We need a slight hack since the defaultEngine looks for local_vllm or openai.
 	// But let's cheat and register mock as "openai" for testing purposes.

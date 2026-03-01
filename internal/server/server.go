@@ -1,8 +1,8 @@
 package server
 
 import (
-	"encoding/json"
 	"agentic-llm-gateway/pkg/logger"
+	"encoding/json"
 	"net/http"
 
 	"agentic-llm-gateway/internal/config"
@@ -52,7 +52,7 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	}
 
 	strategy := s.rm.GetStrategy()
-	
+
 	provider, targetModel, err := s.engine.SelectProvider(&req, strategy)
 	if err != nil {
 		logger.Printf("[Server] Routing failed: %v", err)
@@ -96,7 +96,7 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request, provider p
 	}
 
 	streamChan := make(chan *models.ChatCompletionStreamResponse)
-	
+
 	err := provider.ChatCompletionStream(r.Context(), req, streamChan)
 	if err != nil {
 		logger.Printf("[Server] Upstream Stream Init Error (%s): %v", provider.Name(), err)
@@ -115,7 +115,7 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request, provider p
 				flusher.Flush()
 				return
 			}
-			
+
 			data, _ := json.Marshal(chunk)
 			w.Write([]byte("data: "))
 			w.Write(data)
