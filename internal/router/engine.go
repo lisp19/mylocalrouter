@@ -36,6 +36,12 @@ func NewEngine(pMap map[string]providers.Provider) StrategyEngine {
 				} else {
 					log.Printf("[Router] Failed to init LLM API Evaluator %s: %v", eCfg.Name, err)
 				}
+			} else if eCfg.Type == "llm_logprob_api" {
+				if ev, err := evaluator.NewLLMLogprobEvaluator(eCfg); err == nil {
+					evals = append(evals, ev)
+				} else {
+					log.Printf("[Router] Failed to init LLM Logprob API Evaluator %s: %v", eCfg.Name, err)
+				}
 			} else if eCfg.Type == "builtin" {
 				evals = append(evals, evaluator.NewBuiltinLengthEvaluator(eCfg))
 			}

@@ -88,5 +88,26 @@ print(f"'1' 的 Token ID 是: {tokens_1}")
    Time Taken (TTFT):   78.4ms
    ```
 
-## 4. 其它注意事项
-* **Timeout 设置原则**：模型越大，出首字（TTFT）越慢。生成式算子的意义在于拦截，如果判别算子需要 500ms 才能得出结论，那么就失去了加速“简单寒暄”的意义。因此，建议算子使用的模型参数量控制在 1.5B 以下，并且在 `config.yaml` 中严格设置 `timeout_ms: 60` 或 `100`。超时后网关会自动执行降级，跳过拦截直接去远端，**确保核心服务不断流**。
+## 4. 获取平滑的概率值 (0.0 ~ 1.0)
+如果您希望模型不仅输出 `0` 或 `1`，而是希望得到类似 `0.85` 的概率平滑值（例如：0.85 意味着模型认为该问题有 85% 的概率是复杂任务），您可以使用 **`llm_logprob_api`** 这一高级算子类型。
+
+**配置方法：**
+在 `config.yaml` 中，将算子的 `type` 修改为 `llm_logprob_api`，同时**保留 `logit_bias`** 设置。
+
+```yaml
+    - name: "prob_complexity"
+      type: "llm_logprob_api"    # 高级类型
+      endpoint: "http://localhost:11434/v1/chat/completions"
+      model: "qwen2.5:0.5b"
+      logit_bias: 
+        "15": 100
+        "16": 100
+```
+
+**工作原理：**
+该选项依然在底层强制模型只能选择 `0` 或 `1`，但系统不会直接返回该硬分类结果，而是通过 OpenAI 标准协议中的 `top_logprobs` 取回模型在生成这一个 Token 时，备选词汇表里 `0` 和 `1` 的原始对数概率。然后使用 Softmax 公式将其转换为精确的长尾浮点分数。
+借此，您可以在 `resolution_strategy` 里写出更加柔性的表达式：
+*例如：* `- condition: "prob_complexity > 0.6"`
+
+## 5. 其它注意事项
+* **Timeout 设置原则**：模型越大，出首字（TTFT）越慢。建议算子使用的模型参数量控制在 1.5B 以下，并且在 `config.yaml` 中严格设置 `timeout_ms: 60` 或 `100`。超时后网关会自动执行降级，跳过拦截直接去远端，**确保核心服务不断流**。

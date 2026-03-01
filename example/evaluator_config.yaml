@@ -55,6 +55,22 @@ generative_routing:
     - name: "length_check"
       type: "builtin"
       threshold: 50 # 超过50个字符得分 (Score) 将被置为 1.0，否则为 0.0
+
+    # 算子 3: 基于 Logprobs 概率评分的分类器（返回 0.0 ~ 1.0 的平滑小数）
+    # 适用场景：需要根据小模型不确定性设置浮点数阈值的情境（例如：complexity > 0.6 即发远程）
+    - name: "prob_complexity"
+      type: "llm_logprob_api"    # 注意类型变为 llm_logprob_api
+      endpoint: "http://localhost:11434/v1/chat/completions"
+      model: "qwen2.5:0.5b"
+      history_rounds: 0
+      timeout_ms: 60
+      # 同样需要设置 logit_bias 限制在 '0' 和 '1'
+      logit_bias: 
+        "15": 100
+        "16": 100
+      prompt_template: |-
+        判断这是一条复杂任务吗？复杂输出1，简单寒暄输出0，只输出数字。
+        任务：{{.Current}}
       
   # ==========================================
   # 策略层：如何根据上述算子返回的多维特征向量进行路由判定
