@@ -8,6 +8,7 @@ import (
 	"io"
 	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"text/template"
 	"time"
@@ -18,10 +19,12 @@ import (
 )
 
 // LLMLogprobEvaluator uses log probabilities of specific tokens to return a continuous decimal score (float 0.0~1.0).
+// When using Ollama protocol (which does not support logprobs), it falls back to content-based parsing.
 type LLMLogprobEvaluator struct {
 	name          string
 	endpoint      string
 	model         string
+	protocol      string // "ollama" or "openai"
 	historyRounds int
 	timeoutMs     int
 	logitBias     map[string]int
@@ -35,15 +38,21 @@ func NewLLMLogprobEvaluator(cfg config.EvaluatorConfig) (*LLMLogprobEvaluator, e
 		return nil, fmt.Errorf("invalid prompt template: %w", err)
 	}
 
-	timeout := 100 * time.Millisecond
+	timeout := 10 * time.Second
 	if cfg.TimeoutMs > 0 {
 		timeout = time.Duration(cfg.TimeoutMs) * time.Millisecond
+	}
+
+	protocol := cfg.Protocol
+	if protocol == "" {
+		protocol = "ollama"
 	}
 
 	return &LLMLogprobEvaluator{
 		name:          cfg.Name,
 		endpoint:      cfg.Endpoint,
 		model:         cfg.Model,
+		protocol:      protocol,
 		historyRounds: cfg.HistoryRounds,
 		timeoutMs:     cfg.TimeoutMs,
 		logitBias:     cfg.LogitBias,
@@ -88,21 +97,108 @@ func (e *LLMLogprobEvaluator) Evaluate(ctx context.Context, messages []models.Me
 		return nil, fmt.Errorf("template rendering failed: %w", err)
 	}
 
-	// Prepare OpenAI request body with logprobs
+	if e.protocol == "ollama" {
+		return e.evaluateOllama(ctx, promptBuf.String())
+	}
+	return e.evaluateOpenAI(ctx, promptBuf.String())
+}
+
+// evaluateOllama uses Ollama native /api/chat with think=false, and falls back to content-based scoring
+// since Ollama does not support logprobs.
+func (e *LLMLogprobEvaluator) evaluateOllama(ctx context.Context, prompt string) (*EvaluationResult, error) {
 	reqBody := map[string]interface{}{
 		"model": e.model,
 		"messages": []map[string]string{
 			{
 				"role":    "user",
-				"content": promptBuf.String(),
+				"content": prompt,
+			},
+		},
+		"stream": false,
+		"think":  false, // Disable reasoning for Ollama thinking models
+		"options": map[string]interface{}{
+			"temperature": 0.0,
+			"num_predict": 1,
+		},
+	}
+
+	reqBytes, err := json.Marshal(reqBody)
+	if err != nil {
+		return nil, err
+	}
+	logger.Printf("[Evaluator %s] Verbose Input: %s", e.name, string(reqBytes))
+
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, e.endpoint, bytes.NewReader(reqBytes))
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := e.client.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("LLM API request failed: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return nil, fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(body))
+	}
+
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	logger.Printf("[Evaluator %s] Verbose Output: %s", e.name, string(bodyBytes))
+
+	content, err := parseOllamaContent(bodyBytes)
+	if err != nil {
+		return nil, err
+	}
+
+	content = strings.TrimSpace(content)
+	if content == "" {
+		return nil, fmt.Errorf("empty content in Ollama response")
+	}
+
+	// Fallback: parse content for "0" or "1" as discrete score
+	score, err := strconv.ParseFloat(content[:1], 64)
+	if err != nil {
+		// Try to find the first digit
+		for _, c := range content {
+			if c == '0' || c == '1' {
+				score = float64(c - '0')
+				err = nil
+				break
+			}
+		}
+		if err != nil {
+			return nil, fmt.Errorf("no '0' or '1' found in Ollama content: %q", content)
+		}
+	}
+
+	return &EvaluationResult{
+		Dimension: e.name,
+		Score:     score,
+	}, nil
+}
+
+// evaluateOpenAI uses the OpenAI-compatible /v1/chat/completions endpoint with logprobs
+func (e *LLMLogprobEvaluator) evaluateOpenAI(ctx context.Context, prompt string) (*EvaluationResult, error) {
+	reqBody := map[string]interface{}{
+		"model": e.model,
+		"messages": []map[string]string{
+			{
+				"role":    "user",
+				"content": prompt,
 			},
 		},
 		"temperature":      0.0,
 		"max_tokens":       150, // Allow enough tokens for reasoning models
 		"logprobs":         true,
-		"top_logprobs":     2, // We need at least the top 2 logprobs to calculate the softmax
+		"top_logprobs":     2,
 		"disable_thinking": true,
-		"think":            false, // New standard for Ollama to disable reasoning
+		"think":            false,
 	}
 	if len(e.logitBias) > 0 {
 		reqBody["logit_bias"] = e.logitBias
@@ -165,7 +261,6 @@ func (e *LLMLogprobEvaluator) Evaluate(ctx context.Context, messages []models.Me
 	var topLogprobs []TopLogprob
 
 	// Search backwards for the actual '0' or '1' output token
-	// This skips reasoning tokens that might appear before the final answer
 	for i := len(tokens) - 1; i >= 0; i-- {
 		tk := strings.TrimSpace(tokens[i].Token)
 		if tk == "0" || tk == "1" {
@@ -181,7 +276,6 @@ func (e *LLMLogprobEvaluator) Evaluate(ctx context.Context, messages []models.Me
 	val0 := math.Inf(-1)
 	val1 := math.Inf(-1)
 
-	// We look for token "0" and "1" (or " 0" / " 1" depending on tokenizer)
 	for _, tlp := range topLogprobs {
 		tk := strings.TrimSpace(tlp.Token)
 		if tk == "0" {
@@ -192,11 +286,8 @@ func (e *LLMLogprobEvaluator) Evaluate(ctx context.Context, messages []models.Me
 	}
 
 	// Softmax calculation
-	// P(1) = exp(val1) / (exp(val0) + exp(val1))
-	// If one is missing (e.g., negative infinity), it simply returns 1.0 or 0.0
 	score := 0.0
 	if val0 == math.Inf(-1) && val1 == math.Inf(-1) {
-		// Neither 0 nor 1 was in top logprobs
 		return nil, fmt.Errorf("neither '0' nor '1' found in top logprobs")
 	} else if val0 == math.Inf(-1) {
 		score = 1.0
@@ -207,7 +298,6 @@ func (e *LLMLogprobEvaluator) Evaluate(ctx context.Context, messages []models.Me
 		if val1 > val0 {
 			maxVal = val1
 		}
-		// Calculate exp with stability trick
 		exp0 := math.Exp(val0 - maxVal)
 		exp1 := math.Exp(val1 - maxVal)
 		score = exp1 / (exp0 + exp1)

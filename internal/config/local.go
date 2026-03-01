@@ -1,9 +1,9 @@
 package config
 
 import (
+	"agentic-llm-gateway/pkg/logger"
 	"fmt"
 	"io"
-	"agentic-llm-gateway/pkg/logger"
 	"os"
 	"path/filepath"
 	"time"
@@ -30,7 +30,8 @@ type GenerativeRoutingConfig struct {
 // EvaluatorConfig configures a single intent dimension evaluator
 type EvaluatorConfig struct {
 	Name           string         `yaml:"name"`
-	Type           string         `yaml:"type"` // e.g. "llm_api", "builtin"
+	Type           string         `yaml:"type"`               // e.g. "llm_api", "builtin"
+	Protocol       string         `yaml:"protocol,omitempty"` // "ollama" (default) or "openai"
 	Endpoint       string         `yaml:"endpoint,omitempty"`
 	Model          string         `yaml:"model,omitempty"`
 	HistoryRounds  int            `yaml:"history_rounds,omitempty"`
