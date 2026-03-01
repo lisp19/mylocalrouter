@@ -69,8 +69,9 @@ type RemoteStrategyConfig struct {
 
 // ProviderConfig configures a specific upstream provider
 type ProviderConfig struct {
-	APIKey  string `yaml:"api_key"`
-	BaseURL string `yaml:"base_url"`
+	APIKey       string `yaml:"api_key"`
+	BaseURL      string `yaml:"base_url"`
+	DefaultModel string `yaml:"default_model,omitempty"` // optional static default; overridable by remote config
 }
 
 const DefaultConfigTemplate = `server:
