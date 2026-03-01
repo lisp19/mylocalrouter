@@ -12,9 +12,7 @@ Its core responsibility is receiving client requests, pulling remote JSON-based 
 
 ---
 ### 🧬 Experimental: Generative Smart Routing (智能化生成式路由)
-**[EN]** Agentic LLM Gateway now supports *Generative Smart Routing* (Experimental). By configuring multiple concurrent intent evaluators (e.g. complexity, context dependency), the gateway delegates simple queries to local small models and complex queries to remote large models. Define rules using dynamic expressions in `config.yaml`. To debug evaluators independently, use the `eval-cli` tool.
-
-**[ZH]** Agentic LLM Gateway 现已支持**智能化生成式路由**（实验性功能）。通过配置多个并发的意图判别算子（如：复杂度评估、上下文依赖评估），网关可将简单的自然语言请求拦截并路由至本地小参数模型，将复杂长文本路由至云端大模型。可在 `config.yaml` 中使用动态逻辑表达式定义路由条件。支持使用 `eval-cli` 工具进行算子独立调试。
+Agentic LLM Gateway now supports *Generative Smart Routing* (Experimental). By configuring multiple concurrent intent evaluators (e.g. complexity, context dependency), the gateway delegates simple queries to local small models and complex queries to remote large models. Define rules using dynamic expressions in `config.yaml`. To debug evaluators independently, use the `eval-cli` tool.
 ---
 
 ## Build
