@@ -5,7 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log/slog"
+	"localrouter/pkg/logger"
 	"net/http"
 	"strings"
 	"time"
@@ -119,7 +119,7 @@ func (p *Provider) doRequest(ctx context.Context, endpoint string, body interfac
 
 	resp, err := p.client.Do(req)
 	if err != nil {
-		slog.Error("Anthropic API network request failed", "error", err, "endpoint", endpoint)
+		logger.Error("Anthropic API network request failed", "error", err, "endpoint", endpoint)
 	}
 	return resp, err
 }
@@ -136,7 +136,7 @@ func (p *Provider) ChatCompletion(ctx context.Context, req *models.ChatCompletio
 
 	if resp.StatusCode != http.StatusOK {
 		err := fmt.Errorf("anthropic api error: status %d", resp.StatusCode)
-		slog.Error("Anthropic API network request failed with status", "error", err)
+		logger.Error("Anthropic API network request failed with status", "error", err)
 		return nil, err
 	}
 
@@ -191,7 +191,7 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *models.ChatCom
 	if resp.StatusCode != http.StatusOK {
 		resp.Body.Close()
 		err := fmt.Errorf("anthropic api error: status %d", resp.StatusCode)
-		slog.Error("Anthropic API streaming network request failed with status", "error", err)
+		logger.Error("Anthropic API streaming network request failed with status", "error", err)
 		return err
 	}
 
@@ -241,7 +241,7 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *models.ChatCom
 		})
 
 		if err != nil && err != context.Canceled {
-			slog.Error("Anthropic Stream error", "error", err)
+			logger.Error("Anthropic Stream error", "error", err)
 		}
 	}()
 

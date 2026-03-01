@@ -2,7 +2,7 @@ package evaluator
 
 import (
 	"context"
-	"log"
+	"localrouter/pkg/logger"
 	"sync"
 	"time"
 
@@ -30,7 +30,7 @@ func EvaluateAll(ctx context.Context, msgs []models.Message, globalTimeoutMs int
 		g.Go(func() error {
 			res, err := ev.Evaluate(ctx, msgs)
 			if err != nil {
-				log.Printf("Evaluator %s failed or timed out: %v", ev.Name(), err)
+				logger.Printf("Evaluator %s failed or timed out: %v", ev.Name(), err)
 				return nil // do not fail the group, graceful degradation
 			}
 			mu.Lock()

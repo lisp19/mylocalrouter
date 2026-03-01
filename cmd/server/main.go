@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"localrouter/pkg/logger"
 
 	"localrouter/internal/config"
 	"localrouter/internal/providers"
@@ -16,7 +16,7 @@ import (
 func main() {
 	cfg, err := config.LoadLocalConfig()
 	if err != nil {
-		log.Fatalf("Fatal parsing config: %v", err)
+		logger.Fatalf("Fatal parsing config: %v", err)
 	}
 
 	// Initialize Provider Map
@@ -55,6 +55,6 @@ func main() {
 	srv := server.NewServer(rm, engine)
 	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 	if err := srv.Start(addr); err != nil {
-		log.Fatalf("Server stopped: %v", err)
+		logger.Fatalf("Server stopped: %v", err)
 	}
 }

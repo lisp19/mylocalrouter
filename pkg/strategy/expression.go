@@ -1,7 +1,7 @@
 package strategy
 
 import (
-	"log"
+	"localrouter/pkg/logger"
 
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
@@ -28,7 +28,7 @@ func NewExpressionResolver(cfg config.ResolutionStrategyConfig) *ExpressionResol
 		// Compile expression once at startup
 		program, err := expr.Compile(rule.Condition, expr.AllowUndefinedVariables())
 		if err != nil {
-			log.Printf("[Strategy] Failed to compile expression %q: %v", rule.Condition, err)
+			logger.Printf("[Strategy] Failed to compile expression %q: %v", rule.Condition, err)
 			continue
 		}
 

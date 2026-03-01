@@ -3,7 +3,7 @@ package router
 import (
 	"context"
 	"fmt"
-	"log"
+	"localrouter/pkg/logger"
 
 	"localrouter/internal/config"
 	"localrouter/internal/models"
@@ -34,13 +34,13 @@ func NewEngine(pMap map[string]providers.Provider) StrategyEngine {
 				if ev, err := evaluator.NewLLMAPIEvaluator(eCfg); err == nil {
 					evals = append(evals, ev)
 				} else {
-					log.Printf("[Router] Failed to init LLM API Evaluator %s: %v", eCfg.Name, err)
+					logger.Printf("[Router] Failed to init LLM API Evaluator %s: %v", eCfg.Name, err)
 				}
 			} else if eCfg.Type == "llm_logprob_api" {
 				if ev, err := evaluator.NewLLMLogprobEvaluator(eCfg); err == nil {
 					evals = append(evals, ev)
 				} else {
-					log.Printf("[Router] Failed to init LLM Logprob API Evaluator %s: %v", eCfg.Name, err)
+					logger.Printf("[Router] Failed to init LLM Logprob API Evaluator %s: %v", eCfg.Name, err)
 				}
 			} else if eCfg.Type == "builtin" {
 				evals = append(evals, evaluator.NewBuiltinLengthEvaluator(eCfg))
@@ -81,13 +81,13 @@ func (e *defaultEngine) SelectProvider(req *models.ChatCompletionRequest, remote
 			if p, ok := e.providerMap[targetProvider]; ok {
 				return p, req.Model, nil
 			}
-			log.Printf("[Router] Generative Routing fallback provider %s not found, continuing to normal routing...", targetProvider)
+			logger.Printf("[Router] Generative Routing fallback provider %s not found, continuing to normal routing...", targetProvider)
 		}
 	}
 
 	// Fallback if no strategy defined
 	if remoteCfg == nil || remoteCfg.Strategy == "" {
-		log.Printf("[Router] No remote strategy defined, defaulting to google")
+		logger.Printf("[Router] No remote strategy defined, defaulting to google")
 		if p, ok := e.providerMap["google"]; ok {
 			return p, req.Model, nil
 		}
@@ -101,7 +101,7 @@ func (e *defaultEngine) SelectProvider(req *models.ChatCompletionRequest, remote
 	// For example, if we wanted to dynamically route based on the request's length using expr, we could do:
 	// program, _ := expr.Compile("Cfg.Strategy == 'remote' && len(Req.Messages) > 0", expr.Env(Env{}))
 	// res, _ := expr.Run(program, Env{Req: req, Cfg: remoteCfg})
-	// log.Printf("[Router] Expr Result: %v", res)
+	// logger.Printf("[Router] Expr Result: %v", res)
 
 	if config.GlobalConfig != nil && config.GlobalConfig.RemoteStrategy.Expression != "" {
 		program, err := expr.Compile(config.GlobalConfig.RemoteStrategy.Expression, expr.Env(Env{}))
@@ -123,13 +123,13 @@ func (e *defaultEngine) SelectProvider(req *models.ChatCompletionRequest, remote
 
 						return p, targetModel, nil
 					}
-					log.Printf("[Router] Expr matched unknown provider: %v", providerName)
+					logger.Printf("[Router] Expr matched unknown provider: %v", providerName)
 				}
 			} else {
-				log.Printf("[Router] Expr Run Error: %v", err)
+				logger.Printf("[Router] Expr Run Error: %v", err)
 			}
 		} else {
-			log.Printf("[Router] Expr Compile Error: %v", err)
+			logger.Printf("[Router] Expr Compile Error: %v", err)
 		}
 	}
 

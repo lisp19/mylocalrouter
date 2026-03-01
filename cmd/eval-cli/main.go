@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"log"
+	"localrouter/pkg/logger"
 	"os"
 	"time"
 
@@ -27,23 +27,23 @@ func main() {
 	flag.Parse()
 
 	if evaluatorName == "" {
-		log.Fatal("Please specify an evaluator using --evaluator")
+		logger.Fatal("Please specify an evaluator using --evaluator")
 	}
 
 	// 1. Load config manually to skip full system defaults
 	f, err := os.Open(configPath)
 	if err != nil {
-		log.Fatalf("Failed to open config %s: %v", configPath, err)
+		logger.Fatalf("Failed to open config %s: %v", configPath, err)
 	}
 	defer f.Close()
 
 	var conf config.Config
 	if err := yaml.NewDecoder(f).Decode(&conf); err != nil {
-		log.Fatalf("Failed to decode config: %v", err)
+		logger.Fatalf("Failed to decode config: %v", err)
 	}
 
 	if conf.GenerativeRouting == nil {
-		log.Fatal("Config does not have a generative_routing section")
+		logger.Fatal("Config does not have a generative_routing section")
 	}
 
 	// 2. Find Evaluator
@@ -57,7 +57,7 @@ func main() {
 		}
 	}
 	if !found {
-		log.Fatalf("Evaluator %s not found in config", evaluatorName)
+		logger.Fatalf("Evaluator %s not found in config", evaluatorName)
 	}
 
 	// 3. Initialize Evaluator
@@ -67,21 +67,21 @@ func main() {
 	} else if evalCfg.Type == "builtin" {
 		ev = evaluator.NewBuiltinLengthEvaluator(evalCfg)
 	} else {
-		log.Fatalf("Unknown evaluator type: %s", evalCfg.Type)
+		logger.Fatalf("Unknown evaluator type: %s", evalCfg.Type)
 	}
 	if err != nil {
-		log.Fatalf("Failed to init evaluator: %v", err)
+		logger.Fatalf("Failed to init evaluator: %v", err)
 	}
 
 	// 4. Load Mock Chat
 	chatData, err := os.ReadFile(inputPath)
 	if err != nil {
-		log.Fatalf("Failed to read input %s: %v", inputPath, err)
+		logger.Fatalf("Failed to read input %s: %v", inputPath, err)
 	}
 
 	var req models.ChatCompletionRequest
 	if err := json.Unmarshal(chatData, &req); err != nil {
-		log.Fatalf("Failed to parse mock chat: %v", err)
+		logger.Fatalf("Failed to parse mock chat: %v", err)
 	}
 
 	// 5. Execute Eval
@@ -92,7 +92,7 @@ func main() {
 	elapsed := time.Since(start)
 
 	if err != nil {
-		log.Fatalf("Evaluation failed: %v", err)
+		logger.Fatalf("Evaluation failed: %v", err)
 	}
 
 	// 6. Output Result
