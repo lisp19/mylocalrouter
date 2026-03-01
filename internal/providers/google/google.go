@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log/slog"
+	"localrouter/pkg/logger"
 	"net/http"
 	"strings"
 	"time"
@@ -101,7 +101,7 @@ func (p *Provider) ChatCompletion(ctx context.Context, req *models.ChatCompletio
 	resp, err := p.client.Do(hreq)
 	if err != nil {
 		safeErr := strings.ReplaceAll(err.Error(), p.apiKey, "***")
-		slog.Error("Google API network request failed", "error", safeErr, "model", req.Model)
+		logger.Error("Google API network request failed", "error", safeErr, "model", req.Model)
 		return nil, fmt.Errorf("%s", safeErr)
 	}
 	defer resp.Body.Close()
@@ -110,7 +110,7 @@ func (p *Provider) ChatCompletion(ctx context.Context, req *models.ChatCompletio
 		body, _ := io.ReadAll(resp.Body)
 		err := fmt.Errorf("google api error %d: %s", resp.StatusCode, string(body))
 		safeErr := strings.ReplaceAll(err.Error(), p.apiKey, "***")
-		slog.Error("Google API network request failed with status", "error", safeErr, "model", req.Model)
+		logger.Error("Google API network request failed with status", "error", safeErr, "model", req.Model)
 		return nil, fmt.Errorf("%s", safeErr)
 	}
 
@@ -161,7 +161,7 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *models.ChatCom
 	resp, err := p.client.Do(hreq)
 	if err != nil {
 		safeErr := strings.ReplaceAll(err.Error(), p.apiKey, "***")
-		slog.Error("Google API streaming network request failed", "error", safeErr, "model", req.Model)
+		logger.Error("Google API streaming network request failed", "error", safeErr, "model", req.Model)
 		return fmt.Errorf("%s", safeErr)
 	}
 
@@ -170,7 +170,7 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *models.ChatCom
 		resp.Body.Close()
 		err := fmt.Errorf("google api error %d: %s", resp.StatusCode, string(body))
 		safeErr := strings.ReplaceAll(err.Error(), p.apiKey, "***")
-		slog.Error("Google API streaming network request failed with status", "error", safeErr, "model", req.Model)
+		logger.Error("Google API streaming network request failed with status", "error", safeErr, "model", req.Model)
 		return fmt.Errorf("%s", safeErr)
 	}
 
@@ -233,7 +233,7 @@ func (p *Provider) ChatCompletionStream(ctx context.Context, req *models.ChatCom
 
 		if err := scanner.Err(); err != nil && err != context.Canceled {
 			safeErr := strings.ReplaceAll(err.Error(), p.apiKey, "***")
-			slog.Error("Google Stream error", "error", safeErr)
+			logger.Error("Google Stream error", "error", safeErr)
 		}
 	}()
 

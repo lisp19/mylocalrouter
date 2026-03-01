@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 	"io"
-	"log"
+	"localrouter/pkg/logger"
 	"os"
 	"path/filepath"
 	"time"
@@ -11,11 +11,46 @@ import (
 	"gopkg.in/yaml.v3"
 )
 
-// Config represents the root configuration structure
 type Config struct {
-	Server         ServerConfig              `yaml:"server"`
-	RemoteStrategy RemoteStrategyConfig      `yaml:"remote_strategy"`
-	Providers      map[string]ProviderConfig `yaml:"providers"`
+	Server            ServerConfig              `yaml:"server"`
+	RemoteStrategy    RemoteStrategyConfig      `yaml:"remote_strategy"`
+	Providers         map[string]ProviderConfig `yaml:"providers"`
+	GenerativeRouting *GenerativeRoutingConfig  `yaml:"generative_routing,omitempty"`
+}
+
+// GenerativeRoutingConfig configures the smart routing based on generative models
+type GenerativeRoutingConfig struct {
+	Enabled          bool                     `yaml:"enabled"`
+	GlobalTimeoutMs  int                      `yaml:"global_timeout_ms"`
+	FallbackProvider string                   `yaml:"fallback_provider"`
+	Evaluators       []EvaluatorConfig        `yaml:"evaluators"`
+	Resolution       ResolutionStrategyConfig `yaml:"resolution_strategy"`
+}
+
+// EvaluatorConfig configures a single intent dimension evaluator
+type EvaluatorConfig struct {
+	Name           string         `yaml:"name"`
+	Type           string         `yaml:"type"` // e.g. "llm_api", "builtin"
+	Endpoint       string         `yaml:"endpoint,omitempty"`
+	Model          string         `yaml:"model,omitempty"`
+	HistoryRounds  int            `yaml:"history_rounds,omitempty"`
+	TimeoutMs      int            `yaml:"timeout_ms,omitempty"`
+	LogitBias      map[string]int `yaml:"logit_bias,omitempty"`
+	PromptTemplate string         `yaml:"prompt_template,omitempty"`
+	Threshold      int            `yaml:"threshold,omitempty"`
+}
+
+// ResolutionStrategyConfig configures how to make routing decision based on eval vectors
+type ResolutionStrategyConfig struct {
+	Type            string                 `yaml:"type"` // e.g. "dynamic_expression"
+	Rules           []ResolutionRuleConfig `yaml:"rules,omitempty"`
+	DefaultProvider string                 `yaml:"default_provider"`
+}
+
+// ResolutionRuleConfig determines condition to hit specific target provider
+type ResolutionRuleConfig struct {
+	Condition      string `yaml:"condition"`
+	TargetProvider string `yaml:"target_provider"`
 }
 
 // ServerConfig configures the HTTP server
@@ -74,7 +109,7 @@ func LoadLocalConfig() (*Config, error) {
 
 	// Check if file exists
 	if _, err := os.Stat(configPath); os.IsNotExist(err) {
-		log.Printf("Config file missing at %s, creating default template...", configPath)
+		logger.Printf("Config file missing at %s, creating default template...", configPath)
 		if err := os.MkdirAll(filepath.Dir(configPath), 0755); err != nil {
 			return nil, fmt.Errorf("failed to create config directory: %w", err)
 		}

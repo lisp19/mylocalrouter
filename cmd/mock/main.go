@@ -3,7 +3,7 @@ package main
 import (
 	"context"
 	"fmt"
-	"log"
+	"localrouter/pkg/logger"
 	"time"
 
 	"localrouter/internal/config"
@@ -106,6 +106,6 @@ func main() {
 	addr := ":8081"
 	fmt.Printf("[Mock] Starting Mock Gateway on %s\n", addr)
 	if err := srv.Start(addr); err != nil {
-		log.Fatalf("Mock Server stopped: %v", err)
+		logger.Fatalf("Mock Server stopped: %v", err)
 	}
 }

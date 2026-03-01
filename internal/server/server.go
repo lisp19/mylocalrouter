@@ -2,7 +2,7 @@ package server
 
 import (
 	"encoding/json"
-	"log"
+	"localrouter/pkg/logger"
 	"net/http"
 
 	"localrouter/internal/config"
@@ -40,7 +40,7 @@ func (s *Server) Start(addr string) error {
 		Handler: mux,
 	}
 
-	log.Printf("[Server] Starting edge gateway on %s", addr)
+	logger.Printf("[Server] Starting edge gateway on %s", addr)
 	return server.ListenAndServe()
 }
 
@@ -55,14 +55,14 @@ func (s *Server) handleChatCompletions(w http.ResponseWriter, r *http.Request) {
 	
 	provider, targetModel, err := s.engine.SelectProvider(&req, strategy)
 	if err != nil {
-		log.Printf("[Server] Routing failed: %v", err)
+		logger.Printf("[Server] Routing failed: %v", err)
 		http.Error(w, "Internal Routing Error", http.StatusInternalServerError)
 		return
 	}
 
 	// Update the request's mapped model
 	req.Model = targetModel
-	log.Printf("[Server] Selected Provider: %s. Overriding model to: %s. Stream: %v", provider.Name(), targetModel, req.Stream)
+	logger.Printf("[Server] Selected Provider: %s. Overriding model to: %s. Stream: %v", provider.Name(), targetModel, req.Stream)
 
 	if req.Stream {
 		s.handleStream(w, r, provider, &req)
@@ -75,7 +75,7 @@ func (s *Server) handleSync(w http.ResponseWriter, r *http.Request, provider pro
 	// Need context timeout? Usually upstream manages it or client aborts
 	resp, err := provider.ChatCompletion(r.Context(), req)
 	if err != nil {
-		log.Printf("[Server] Upstream Error (%s): %v", provider.Name(), err)
+		logger.Printf("[Server] Upstream Error (%s): %v", provider.Name(), err)
 		http.Error(w, "Bad Gateway", http.StatusBadGateway)
 		return
 	}
@@ -99,7 +99,7 @@ func (s *Server) handleStream(w http.ResponseWriter, r *http.Request, provider p
 	
 	err := provider.ChatCompletionStream(r.Context(), req, streamChan)
 	if err != nil {
-		log.Printf("[Server] Upstream Stream Init Error (%s): %v", provider.Name(), err)
+		logger.Printf("[Server] Upstream Stream Init Error (%s): %v", provider.Name(), err)
 		http.Error(w, "Bad Gateway", http.StatusBadGateway)
 		return
 	}
