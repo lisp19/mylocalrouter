@@ -1,9 +1,9 @@
 package router
 
 import (
+	"agentic-llm-gateway/pkg/logger"
 	"context"
 	"fmt"
-	"agentic-llm-gateway/pkg/logger"
 
 	"agentic-llm-gateway/internal/config"
 	"agentic-llm-gateway/internal/models"
@@ -79,7 +79,15 @@ func (e *defaultEngine) SelectProvider(req *models.ChatCompletionRequest, remote
 
 		if targetProvider != "" {
 			if p, ok := e.providerMap[targetProvider]; ok {
-				return p, req.Model, nil
+				targetModel := req.Model
+				if remoteCfg != nil {
+					if targetProvider == "local_vllm" && remoteCfg.LocalModel != "" {
+						targetModel = remoteCfg.LocalModel
+					} else if targetProvider != "local_vllm" && remoteCfg.RemoteModel != "" {
+						targetModel = remoteCfg.RemoteModel
+					}
+				}
+				return p, targetModel, nil
 			}
 			logger.Printf("[Router] Generative Routing fallback provider %s not found, continuing to normal routing...", targetProvider)
 		}
