@@ -105,8 +105,9 @@ func (e *LLMAPIEvaluator) Evaluate(ctx context.Context, messages []models.Messag
 			},
 		},
 		"temperature":      0.0,
-		"max_tokens":       1, // We only need 1 token (0 or 1)
+		"max_tokens":       150, // Allow enough tokens for models with reasoning
 		"disable_thinking": true,
+		"think":            false, // New standard for Ollama to disable reasoning
 	}
 	if len(e.logitBias) > 0 {
 		reqBody["logit_bias"] = e.logitBias
@@ -158,7 +159,22 @@ func (e *LLMAPIEvaluator) Evaluate(ctx context.Context, messages []models.Messag
 	}
 
 	content := strings.TrimSpace(openAIResp.Choices[0].Message.Content)
-	score, err := strconv.ParseFloat(content, 64)
+	if content == "" {
+		return nil, fmt.Errorf("empty content in response, possibly pure reasoning")
+	}
+	// Models might output more than just '0' or '1', let's find the first character that is a digit
+	var scoreStr string
+	for _, c := range content {
+		if c >= '0' && c <= '9' {
+			scoreStr += string(c)
+			break
+		}
+	}
+	if len(scoreStr) == 0 {
+		return nil, fmt.Errorf("no numeric score found in content: %q", content)
+	}
+
+	score, err := strconv.ParseFloat(scoreStr, 64)
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse score from content %q: %w", content, err)
 	}

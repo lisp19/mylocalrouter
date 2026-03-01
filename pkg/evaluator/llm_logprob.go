@@ -98,10 +98,11 @@ func (e *LLMLogprobEvaluator) Evaluate(ctx context.Context, messages []models.Me
 			},
 		},
 		"temperature":      0.0,
-		"max_tokens":       1, // Only need one token
+		"max_tokens":       150, // Allow enough tokens for reasoning models
 		"logprobs":         true,
 		"top_logprobs":     2, // We need at least the top 2 logprobs to calculate the softmax
 		"disable_thinking": true,
+		"think":            false, // New standard for Ollama to disable reasoning
 	}
 	if len(e.logitBias) > 0 {
 		reqBody["logit_bias"] = e.logitBias
@@ -145,6 +146,7 @@ func (e *LLMLogprobEvaluator) Evaluate(ctx context.Context, messages []models.Me
 		Choices []struct {
 			Logprobs struct {
 				Content []struct {
+					Token       string       `json:"token"`
 					TopLogprobs []TopLogprob `json:"top_logprobs"`
 				} `json:"content"`
 			} `json:"logprobs"`
@@ -159,7 +161,22 @@ func (e *LLMLogprobEvaluator) Evaluate(ctx context.Context, messages []models.Me
 		return nil, fmt.Errorf("missing logprobs in response")
 	}
 
-	topLogprobs := openAIResp.Choices[0].Logprobs.Content[0].TopLogprobs
+	tokens := openAIResp.Choices[0].Logprobs.Content
+	var topLogprobs []TopLogprob
+
+	// Search backwards for the actual '0' or '1' output token
+	// This skips reasoning tokens that might appear before the final answer
+	for i := len(tokens) - 1; i >= 0; i-- {
+		tk := strings.TrimSpace(tokens[i].Token)
+		if tk == "0" || tk == "1" {
+			topLogprobs = tokens[i].TopLogprobs
+			break
+		}
+	}
+
+	if len(topLogprobs) == 0 {
+		return nil, fmt.Errorf("missing '0' or '1' token in logprobs context")
+	}
 
 	val0 := math.Inf(-1)
 	val1 := math.Inf(-1)

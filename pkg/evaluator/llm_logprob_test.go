@@ -19,6 +19,7 @@ func TestLLMLogprobEvaluator(t *testing.T) {
 					"logprobs": map[string]interface{}{
 						"content": []map[string]interface{}{
 							{
+								"token": "0",
 								"top_logprobs": []map[string]interface{}{
 									{"token": "0", "logprob": -0.5},
 									{"token": "1", "logprob": -1.2},
