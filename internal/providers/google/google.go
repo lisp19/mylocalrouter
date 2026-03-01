@@ -18,7 +18,7 @@ import (
 
 // DefaultModel is the compile-time default model name used when neither the
 // request nor the runtime configuration specifies one.
-const DefaultModel = "gemini-3.0-flash-preview"
+const DefaultModel = "gemini-3-flash-preview"
 
 const defaultBaseURL = "https://generativelanguage.googleapis.com/v1beta/models/"
 
