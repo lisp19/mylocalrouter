@@ -16,78 +16,100 @@ providers:
   local_vllm:
     base_url: "http://127.0.0.1:8000/v1"
 
-# ==========================================
-# 智能化生成式路由配置示例 / Generative Smart Routing Configuration Example
+==========================================
+# Agentic LLM Gateway: 多维度算子与复杂路由策略配置
 # ==========================================
 generative_routing:
   enabled: true
-  global_timeout_ms: 150 # 150ms 严格并发超时，保证网关不卡顿 / 150ms strict concurrent timeout to prevent gateway lag
-  fallback_provider: "openai-remote" # 算子超时、请求失败或异常时的安全兜底目标 / Safe fallback provider when evaluators timeout, fail, or crash
-  
+  global_timeout_ms: 10000 # 由于算子增多，建议略微放宽全局超时时间
+  fallback_provider: "google" # 系统故障兜底
+
   evaluators:
-    # 算子 1: 基于本地大模型 API 的复杂度分类器 / Evaluator 1: Complexity classifier based on local LLM API
+    # ----------------------------------------------------
+    # 算子 1: 复杂度评估器 (输出概率 0.0 ~ 1.0)
+    # 类型: llm_logprob_api (根据不确定性平滑打分)
+    # ----------------------------------------------------
     - name: "complexity"
-      type: "llm_api"
-      endpoint: "http://localhost:11434/v1/chat/completions" # 例如本地常驻的 Ollama/vLLM 接口 / e.g. local Ollama/vLLM interface
-      model: "qwen2.5:0.5b" # 建议使用 0.5B ~ 1.5B 的极小参数模型以保障毫秒级推理速度 / Tiny parameter models (0.5B-1.5B) recommended for ms inference speeds
-      history_rounds: 1 # 携带最近 1 轮历史对话 / Carry 1 round of history
-      timeout_ms: 100 # 单个算子超时时间 / Timeout for a single evaluator
-      
-      # ⚠️ 核心调优参数：强制模型特定 Token 的输出概率 / Core Tuning Parameter: Forcing output probabilities for specific Tokens
-      # 具体请参阅当前目录中的说明文档 / Please refer to evaluator_guide.md in the current directory for details
-      logit_bias: 
+      type: "llm_logprob_api"
+      endpoint: "http://[IP_ADDRESS]/api/chat"
+      model: "qwen3:0.6b"
+      history_rounds: 0 # 仅评估当前这最后一句话的自带复杂度
+      timeout_ms: 4000
+      logit_bias:
+        "15": 100 # "0" 的 Token ID (根据实际模型调整)
+        "16": 100 # "1" 的 Token ID (根据实际模型调整)
+      prompt_template: |-
+        判断下列任务本身的逻辑复杂度。如果是非常简单的日常对话或闲聊输出0，如果是涉及逻辑推理、代码或者复杂步骤的提问输出1。只输出一个数字。
+        任务：{{.Current}}
+
+    # ----------------------------------------------------
+    # 算子 2: 上下文关联度评估器 (输出概率 0.0 ~ 1.0)
+    # 类型: llm_logprob_api
+    # ----------------------------------------------------
+    - name: "context_rel"
+      type: "llm_logprob_api"
+      endpoint: "http://[IP_ADDRESS]/api/chat"
+      model: "qwen3:0.6b"
+      history_rounds: 1 # 携带倒数第二条消息（History）
+      timeout_ms: 4000
+      logit_bias:
         "15": 100
         "16": 100
-      
-      # GO text/template 渲染模板 / GO text/template rendering template
-      # {{.History}} 为历史记录 / for history, {{.Current}} 为当前最后一句 / for the current latest message
       prompt_template: |-
-        你是一个无情的二值分类器。判断用户的最后一条消息是否是一个极其简单的日常寒暄（如：你好，在吗，ok）或不含实际逻辑的短确认。
-        如果是简单寒暄，输出 0；如果是复杂的业务提问、代码生成或长文本，输出 1。
-        只允许输出0或1。不要有任何多余的字符。
-        上下文历史：
+        你是一个语境分析器。请判断“当前消息”是否强烈依赖于“历史消息”才能回答。如果它是独立成句的输出0，如果严重依赖上下文的承接上下文输出1。只输出一个数字。
+        历史消息：
         {{.History}}
-        
         当前消息：
         {{.Current}}
-      
-    # 算子 2: 内置的本地字符串长度检测器 / Evaluator 2: Built-in local string length checker
+
+    # ----------------------------------------------------
+    # 算子 3: 超长文本拦截器 (输出布尔值变体：0.0 否，1.0 是)
+    # 类型: builtin (快速执行，无网络开销)
+    # ----------------------------------------------------
     - name: "length_check"
       type: "builtin"
-      threshold: 50 # 超过50个字符得分 (Score) 将被置为 1.0，否则为 0.0 / Score set to 1.0 if $>50$ chars, else 0.0
+      threshold: 16384 # 若超过 16384 个字符，得分将突变为 1.0
 
-    # 算子 3: 基于 Logprobs 概率评分的分类器 / Evaluator 3: Logprobs probability-based classifier
-    # 适用场景：需要根据小模型不确定性设置浮点数阈值的情境 / Use case: Setting float thresholds based on small model uncertainty
-    - name: "prob_complexity"
-      type: "llm_logprob_api"    # 高级概率算子 / Advanced probability evaluator
-      endpoint: "http://localhost:11434/v1/chat/completions"
-      model: "qwen2.5:0.5b"
+    # ----------------------------------------------------
+    # 算子 4: 结束语识别器 (输出布尔绝对值 0 或 1)
+    # 类型: llm_api (硬分类器，无需 logprobs 开销)
+    # ----------------------------------------------------
+    - name: "is_ending"
+      type: "llm_api"
+      endpoint: "http://[IP_ADDRESS]/api/chat"
+      model: "qwen3:0.6b"
       history_rounds: 0
-      timeout_ms: 60
-      # 同样需要设置 logit_bias 限制在 '0' 和 '1' / Still requires logit_bias to restrict to '0' and '1'
-      logit_bias: 
+      timeout_ms: 4000
+      logit_bias:
         "15": 100
         "16": 100
       prompt_template: |-
-        判断这是一条复杂任务吗？复杂输出1，简单寒暄输出0，只输出数字。
-        任务：{{.Current}}
-      
+        Does the following text contain goodbye/thank-you phrases like 谢谢,再见,拜拜,没问题了? Yes=1, No=0. Output only the number.
+        用户发言：{{.Current}}
+
   # ==========================================
-  # 策略层：如何根据上述算子返回的多维特征向量进行路由判定 / Strategy Layer: How to route based on intent vectors from above evaluators
+  # 表达式策略引擎 (Strategy Resolution)
+  # 说明：使用 antonmedv/expr 动态语法，自上而下逐条求值，命中即返回。
   # ==========================================
   resolution_strategy:
     type: "dynamic_expression"
-    
-    # 动态表达式规则列表（从上到下按序匹配，命中即返回 target_provider） / Dynamic expression rules list (matches sequentially from top to bottom)
+
     rules:
-      # 规则 1 / Rule 1 
-      - condition: "complexity == 0 && length_check < 50"
+      # 1. 一票否决：如果文本超级长，无论意图是什么，直接丢给远端大语言模型。
+      - condition: "length_check >= 1"
+        target_provider: "google"
+
+      # 2. 一票否决：由于是强确定性算子，如果确定是结束语（发再大的模型也是回一句不用谢），立即走本地免费模型。
+      - condition: "is_ending == 1"
         target_provider: "local_vllm"
-        
-      # 规则 2 / Rule 2 
-      # 示例使用了 prob_complexity 产生的 0.0~1.0 浮点概率 / Example uses 0.0~1.0 float probability generated by prob_complexity
-      - condition: "prob_complexity > 0.6"
-        target_provider: "openai-remote"
-    
-    # 表达式没有命中任何规则或者算子返回特征不完整时的默认兜底去向 / Default fallback routing when expressions don't match or vectors are incomplete
-    default_provider: "openai-remote"
+
+      # 3. 概率判决：如果模型觉得这题有超过 50% 概率是复杂逻辑题，交给远端。
+      - condition: "complexity > 0.4"
+        target_provider: "google"
+
+      # 4. 概率判决：哪怕问题很简单，但如果它高度依赖之前的对话历史（超过 50% 概率），为了保证不串台，也交给远端长上下文模型。
+      - condition: "context_rel < 0.5"
+        target_provider: "local_vllm"
+
+    # 5. 保底：上述都没有命中（说明：不长 + 不是结束语 + 不复杂 + 独立成句），比如“你好啊”，安全地交给本地小模型消化。
+    default_provider: "google"

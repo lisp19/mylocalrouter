@@ -114,7 +114,7 @@ func (e *LLMAPIEvaluator) Evaluate(ctx context.Context, messages []models.Messag
 		return nil, err
 	}
 
-	logger.Printf("[Evaluator %s] Verbose Input: %s", e.name, string(reqBytes))
+	logger.Debugf("[Evaluator %s] Verbose Input: %s", e.name, string(reqBytes))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, e.endpoint, bytes.NewReader(reqBytes))
 	if err != nil {
@@ -137,7 +137,7 @@ func (e *LLMAPIEvaluator) Evaluate(ctx context.Context, messages []models.Messag
 	if err != nil {
 		return nil, fmt.Errorf("failed to read response body: %w", err)
 	}
-	logger.Printf("[Evaluator %s] Verbose Output: %s", e.name, string(bodyBytes))
+	logger.Debugf("[Evaluator %s] Verbose Output: %s", e.name, string(bodyBytes))
 
 	var content string
 	if e.protocol == "ollama" {

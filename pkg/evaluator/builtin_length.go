@@ -41,7 +41,7 @@ func (e *BuiltinLengthEvaluator) Evaluate(ctx context.Context, messages []models
 	lastMsg := messages[len(messages)-1]
 
 	trimmed := strings.TrimSpace(lastMsg.Content)
-	logger.Printf("[Evaluator %s] Verbose Input Message: %s", e.name, trimmed)
+	logger.Debugf("[Evaluator %s] Verbose Input Message: %s", e.name, trimmed)
 	length := len([]rune(trimmed))
 
 	// If length is greater than or equal to threshold, it's considered "complex" (score 1.0)
@@ -51,7 +51,7 @@ func (e *BuiltinLengthEvaluator) Evaluate(ctx context.Context, messages []models
 		score = 1.0
 	}
 
-	logger.Printf("[Evaluator %s] Verbose Output Score: %f", e.name, score)
+	logger.Debugf("[Evaluator %s] Verbose Output Score: %f", e.name, score)
 
 	return &EvaluationResult{
 		Dimension: e.name,
