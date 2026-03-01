@@ -3,6 +3,9 @@ package evaluator
 import (
 	"agentic-llm-gateway/pkg/logger"
 	"context"
+	"fmt"
+	"sort"
+	"strings"
 	"sync"
 	"time"
 
@@ -42,5 +45,24 @@ func EvaluateAll(ctx context.Context, msgs []models.Message, globalTimeoutMs int
 
 	// Wait ignores errors because we swallowed them above to return partial/best-effort
 	_ = g.Wait()
+
+	// Log the complete intent vector for debugging and strategy evaluation
+	if len(results) > 0 {
+		// Sort keys for deterministic output
+		keys := make([]string, 0, len(results))
+		for k := range results {
+			keys = append(keys, k)
+		}
+		sort.Strings(keys)
+
+		parts := make([]string, 0, len(keys))
+		for _, k := range keys {
+			parts = append(parts, fmt.Sprintf("%s: %.4f", k, results[k]))
+		}
+		logger.Printf("[Evaluator] Intent Vector: {%s}", strings.Join(parts, ", "))
+	} else {
+		logger.Printf("[Evaluator] Intent Vector: {} (all evaluators failed or timed out)")
+	}
+
 	return results
 }
