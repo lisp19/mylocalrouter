@@ -7,8 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"localrouter/internal/config"
-	"localrouter/internal/models"
+	"agentic-llm-gateway/internal/config"
+	"agentic-llm-gateway/internal/models"
 )
 
 func TestLLMLogprobEvaluator(t *testing.T) {

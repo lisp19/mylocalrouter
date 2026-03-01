@@ -12,8 +12,8 @@ import (
 	"text/template"
 	"time"
 
-	"localrouter/internal/config"
-	"localrouter/internal/models"
+	"agentic-llm-gateway/internal/config"
+	"agentic-llm-gateway/internal/models"
 )
 
 // LLMLogprobEvaluator uses log probabilities of specific tokens to return a continuous decimal score (float 0.0~1.0).

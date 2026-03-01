@@ -3,14 +3,14 @@ package router
 import (
 	"context"
 	"fmt"
-	"localrouter/pkg/logger"
+	"agentic-llm-gateway/pkg/logger"
 
-	"localrouter/internal/config"
-	"localrouter/internal/models"
-	"localrouter/internal/providers"
+	"agentic-llm-gateway/internal/config"
+	"agentic-llm-gateway/internal/models"
+	"agentic-llm-gateway/internal/providers"
 
-	"localrouter/pkg/evaluator"
-	"localrouter/pkg/strategy"
+	"agentic-llm-gateway/pkg/evaluator"
+	"agentic-llm-gateway/pkg/strategy"
 
 	"github.com/expr-lang/expr"
 )

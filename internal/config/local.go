@@ -3,7 +3,7 @@ package config
 import (
 	"fmt"
 	"io"
-	"localrouter/pkg/logger"
+	"agentic-llm-gateway/pkg/logger"
 	"os"
 	"path/filepath"
 	"time"
@@ -95,7 +95,7 @@ providers:
 
 var GlobalConfig *Config
 
-// LoadLocalConfig loads configuration from LOCALROUTER_CONFIG_PATH or ~/.config/localrouter/config.yaml
+// LoadLocalConfig loads configuration from LOCALROUTER_CONFIG_PATH or ~/.config/agentic-llm-gateway/config.yaml
 // If the configuration file doesn't exist, it creates a template for the user.
 func LoadLocalConfig() (*Config, error) {
 	configPath := os.Getenv("LOCALROUTER_CONFIG_PATH")
@@ -104,7 +104,7 @@ func LoadLocalConfig() (*Config, error) {
 		if err != nil {
 			return nil, fmt.Errorf("failed to get user home directory: %w", err)
 		}
-		configPath = filepath.Join(home, ".config", "localrouter", "config.yaml")
+		configPath = filepath.Join(home, ".config", "agentic-llm-gateway", "config.yaml")
 	}
 
 	// Check if file exists

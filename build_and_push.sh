@@ -3,7 +3,7 @@ set -e
 
 # Configuration
 DOCKER_USERNAME="lisp19"
-IMAGE_NAME="localrouter"
+IMAGE_NAME="agentic-llm-gateway"
 REPO="${DOCKER_USERNAME}/${IMAGE_NAME}"
 
 # Require jq and curl mapping tools

@@ -2,13 +2,13 @@ package evaluator
 
 import (
 	"context"
-	"localrouter/pkg/logger"
+	"agentic-llm-gateway/pkg/logger"
 	"sync"
 	"time"
 
 	"golang.org/x/sync/errgroup"
 
-	"localrouter/internal/models"
+	"agentic-llm-gateway/internal/models"
 )
 
 // EvaluateAll executes all configured evaluators concurrently

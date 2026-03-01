@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"strings"
 
-	"localrouter/internal/config"
-	"localrouter/internal/models"
+	"agentic-llm-gateway/internal/config"
+	"agentic-llm-gateway/internal/models"
 )
 
 // BuiltinLengthEvaluator evaluates the length of the latest message

@@ -5,12 +5,12 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"localrouter/pkg/logger"
+	"agentic-llm-gateway/pkg/logger"
 	"net/http"
 	"strings"
 
-	"localrouter/internal/models"
-	"localrouter/pkg/httputil"
+	"agentic-llm-gateway/internal/models"
+	"agentic-llm-gateway/pkg/httputil"
 )
 
 // Provider implements the OpenAI compatible upstream provider.

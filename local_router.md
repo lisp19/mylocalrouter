@@ -1,6 +1,6 @@
-LocalRouter: 本地大模型统一反向代理网关设计文档
+Agentic LLM Gateway: 本地大模型统一反向代理网关设计文档
 1. 架构概述
-LocalRouter 是一个轻量级、高性能的本地大模型网关，对外暴露标准 OpenAI API 协议。其核心职责是接收客户端请求，通过 HTTP 请求拉取远程的动态路由策略，并将请求无缝代理至后端的各大云端 Provider 或本地模型（Ollama/vLLM），最后将结果（支持流式 SSE）返回给客户端。
+Agentic LLM Gateway 是一个轻量级、高性能的本地大模型网关，对外暴露标准 OpenAI API 协议。其核心职责是接收客户端请求，通过 HTTP 请求拉取远程的动态路由策略，并将请求无缝代理至后端的各大云端 Provider 或本地模型（Ollama/vLLM），最后将结果（支持流式 SSE）返回给客户端。
 
 核心特性
 统一接入：100% 兼容 OpenAI Chat Completions 协议。
@@ -15,7 +15,7 @@ LocalRouter 是一个轻量级、高性能的本地大模型网关，对外暴�
 良好的目录结构是代码生成的基础，建议按照以下结构组织项目：
 
 Plaintext
-localrouter/
+agentic-llm-gateway/
 ├── cmd/
 │   ├── server/           # 主程序入口
 │   │   └── main.go
@@ -86,7 +86,7 @@ type StrategyEngine interface {
 
 读取环境变量 LOCALROUTER_CONFIG_PATH。
 
-若为空，默认查找应用专有配置目录（如 Linux/Mac 下的 $HOME/.config/localrouter/config.yaml）。
+若为空，默认查找应用专有配置目录（如 Linux/Mac 下的 $HOME/.config/agentic-llm-gateway/config.yaml）。
 
 若文件不存在，程序自动在目标路径创建包含基础结构的默认模板文件。
 
@@ -142,10 +142,10 @@ MockProvider 在内存中生成模拟响应，并通过 time.Sleep 模拟真实�
 6.1 构建脚本与 Makefile
 Makefile
 build:
-	CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/localrouter ./cmd/server/main.go
+	CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/agentic-llm-gateway ./cmd/server/main.go
 
 build-mock:
-	CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/localrouter-mock ./cmd/mock/main.go
+	CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/agentic-llm-gateway-mock ./cmd/mock/main.go
 
 test:
 	go test -v -race ./...
@@ -157,16 +157,16 @@ Dockerfile
 FROM golang:1.24-alpine AS builder
 WORKDIR /app
 COPY . .
-RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o localrouter ./cmd/server/main.go
+RUN CGO_ENABLED=0 GOOS=linux go build -ldflags="-s -w" -o agentic-llm-gateway ./cmd/server/main.go
 
 # Run Stage
 FROM alpine:latest
 WORKDIR /app
-COPY --from=builder /app/localrouter .
+COPY --from=builder /app/agentic-llm-gateway .
 VOLUME ["/app/config"]
 ENV LOCALROUTER_CONFIG_PATH=/app/config/config.yaml
 EXPOSE 8080
-ENTRYPOINT ["./localrouter"]
+ENTRYPOINT ["./agentic-llm-gateway"]
 配合 docker-compose.yml，可以将宿主机目录直接映射至 /app/config，实现配置热加载与持久化。
 
 7. AI 辅助编程 (Vibe Coding) 实施建议

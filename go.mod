@@ -1,4 +1,4 @@
-module localrouter
+module agentic-llm-gateway
 
 go 1.24.0
 

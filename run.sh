@@ -2,14 +2,14 @@
 set -e
 
 # Default settings
-DEFAULT_CONFIG_DIR="$HOME/.config/localrouter"
-IMAGE_NAME="lisp19/localrouter:latest"
+DEFAULT_CONFIG_DIR="$HOME/.config/agentic-llm-gateway"
+IMAGE_NAME="lisp19/agentic-llm-gateway:latest"
 PORT="8080"
 
 # Parse args
 CONFIG_DIR="${1:-$DEFAULT_CONFIG_DIR}"
 
-echo "Starting LocalRouter via Docker..."
+echo "Starting Agentic LLM Gateway via Docker..."
 echo "Configuration directory mapped to: $CONFIG_DIR"
 echo "Listening on port: $PORT"
 
@@ -34,14 +34,14 @@ docker pull "$IMAGE_NAME"
 # --restart unless-stopped: Always restart the container if it stops, unless explicitly stopped
 
 # Stop and remove existing container if it exists
-if [ "$(docker ps -aq -f name=localrouter)" ]; then
-    echo "Removing existing localrouter container..."
-    docker rm -f localrouter
+if [ "$(docker ps -aq -f name=agentic-llm-gateway)" ]; then
+    echo "Removing existing agentic-llm-gateway container..."
+    docker rm -f agentic-llm-gateway
 fi
 
 echo "Starting new container..."
 docker run -d \
-    --name localrouter \
+    --name agentic-llm-gateway \
     -p "$PORT:8080" \
     -v "$CONFIG_DIR:/app/config" \
     --restart unless-stopped \
@@ -49,6 +49,6 @@ docker run -d \
     --log-opt max-file=3 \
     "$IMAGE_NAME"
 
-echo "LocalRouter is now running!"
-echo "You can check logs with: docker logs -f localrouter"
+echo "Agentic LLM Gateway is now running!"
+echo "You can check logs with: docker logs -f agentic-llm-gateway"
 echo "API endpoint: http://localhost:$PORT/v1/chat/completions"

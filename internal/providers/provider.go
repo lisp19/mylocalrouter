@@ -3,7 +3,7 @@ package providers
 import (
 	"context"
 
-	"localrouter/internal/models"
+	"agentic-llm-gateway/internal/models"
 )
 
 // Provider abstracts the underlying generic LLM vendor interface

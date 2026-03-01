@@ -3,7 +3,7 @@ package evaluator
 import (
 	"context"
 
-	"localrouter/internal/models"
+	"agentic-llm-gateway/internal/models"
 )
 
 // EvaluationResult stores a single dimension's score

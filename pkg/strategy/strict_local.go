@@ -1,6 +1,6 @@
 package strategy
 
-import "localrouter/internal/config"
+import "agentic-llm-gateway/internal/config"
 
 // StrictLocalResolver routes to local if complexity and context_rel are 0, else remote.
 // This is a static hardcoded fallback strategy.

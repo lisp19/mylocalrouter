@@ -3,7 +3,7 @@ package strategy
 import (
 	"testing"
 
-	"localrouter/internal/config"
+	"agentic-llm-gateway/internal/config"
 )
 
 func TestExpressionResolver(t *testing.T) {

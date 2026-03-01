@@ -2,15 +2,15 @@ package main
 
 import (
 	"fmt"
-	"localrouter/pkg/logger"
+	"agentic-llm-gateway/pkg/logger"
 
-	"localrouter/internal/config"
-	"localrouter/internal/providers"
-	"localrouter/internal/providers/anthropic"
-	"localrouter/internal/providers/google"
-	"localrouter/internal/providers/openai"
-	"localrouter/internal/router"
-	"localrouter/internal/server"
+	"agentic-llm-gateway/internal/config"
+	"agentic-llm-gateway/internal/providers"
+	"agentic-llm-gateway/internal/providers/anthropic"
+	"agentic-llm-gateway/internal/providers/google"
+	"agentic-llm-gateway/internal/providers/openai"
+	"agentic-llm-gateway/internal/router"
+	"agentic-llm-gateway/internal/server"
 )
 
 func main() {

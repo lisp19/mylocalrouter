@@ -1,12 +1,12 @@
 package strategy
 
 import (
-	"localrouter/pkg/logger"
+	"agentic-llm-gateway/pkg/logger"
 
 	"github.com/expr-lang/expr"
 	"github.com/expr-lang/expr/vm"
 
-	"localrouter/internal/config"
+	"agentic-llm-gateway/internal/config"
 )
 
 // ExpressionResolver dynamically parses logical expressions

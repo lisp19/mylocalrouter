@@ -2,13 +2,13 @@ package server
 
 import (
 	"encoding/json"
-	"localrouter/pkg/logger"
+	"agentic-llm-gateway/pkg/logger"
 	"net/http"
 
-	"localrouter/internal/config"
-	"localrouter/internal/models"
-	"localrouter/internal/providers"
-	"localrouter/internal/router"
+	"agentic-llm-gateway/internal/config"
+	"agentic-llm-gateway/internal/models"
+	"agentic-llm-gateway/internal/providers"
+	"agentic-llm-gateway/internal/router"
 )
 
 // Server encapsulates the HTTP handler and routing logic
