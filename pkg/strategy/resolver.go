@@ -1,6 +1,6 @@
 package strategy
 
-import "localrouter/internal/config"
+import "agentic-llm-gateway/internal/config"
 
 // Resolver defines the unified interface for intent vector resolution strategies
 type Resolver interface {

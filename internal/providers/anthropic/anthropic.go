@@ -5,13 +5,13 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"localrouter/pkg/logger"
+	"agentic-llm-gateway/pkg/logger"
 	"net/http"
 	"strings"
 	"time"
 
-	"localrouter/internal/models"
-	"localrouter/pkg/httputil"
+	"agentic-llm-gateway/internal/models"
+	"agentic-llm-gateway/pkg/httputil"
 )
 
 const defaultBaseURL = "https://api.anthropic.com/v1"

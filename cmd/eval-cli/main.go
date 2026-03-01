@@ -5,15 +5,15 @@ import (
 	"encoding/json"
 	"flag"
 	"fmt"
-	"localrouter/pkg/logger"
+	"agentic-llm-gateway/pkg/logger"
 	"os"
 	"time"
 
 	"gopkg.in/yaml.v3"
 
-	"localrouter/internal/config"
-	"localrouter/internal/models"
-	"localrouter/pkg/evaluator"
+	"agentic-llm-gateway/internal/config"
+	"agentic-llm-gateway/internal/models"
+	"agentic-llm-gateway/pkg/evaluator"
 )
 
 func main() {

@@ -7,12 +7,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"localrouter/pkg/logger"
+	"agentic-llm-gateway/pkg/logger"
 	"net/http"
 	"strings"
 	"time"
 
-	"localrouter/internal/models"
+	"agentic-llm-gateway/internal/models"
 )
 
 const defaultBaseURL = "https://generativelanguage.googleapis.com/v1beta/models/"

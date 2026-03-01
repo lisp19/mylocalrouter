@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"localrouter/internal/config"
-	"localrouter/internal/models"
-	"localrouter/internal/providers"
+	"agentic-llm-gateway/internal/config"
+	"agentic-llm-gateway/internal/models"
+	"agentic-llm-gateway/internal/providers"
 )
 
 // MockProvider is a simple mock for testing

@@ -3,10 +3,10 @@
 all: build
 
 build:
-	CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/localrouter ./cmd/server/main.go
+	CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/agentic-llm-gateway ./cmd/server/main.go
 
 build-mock:
-	CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/localrouter-mock ./cmd/mock/main.go
+	CGO_ENABLED=0 go build -ldflags="-s -w" -o bin/agentic-llm-gateway-mock ./cmd/mock/main.go
 
 test:
 	go test -v -race ./...

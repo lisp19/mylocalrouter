@@ -12,8 +12,8 @@ import (
 	"text/template"
 	"time"
 
-	"localrouter/internal/config"
-	"localrouter/internal/models"
+	"agentic-llm-gateway/internal/config"
+	"agentic-llm-gateway/internal/models"
 )
 
 // LLMAPIEvaluator evaluates using a standard OpenAI Chat API compatible endpoint

@@ -1,7 +1,7 @@
-# mylocalrouter vNext: 智能生成式路由 / Generative Smart Routing PRD & Design Doc
+# myagentic-llm-gateway vNext: 智能生成式路由 / Generative Smart Routing PRD & Design Doc
 
-**[ZH]** 本文档旨在为 mylocalrouter 的下一代“智能生成式路由”特性提供完整的需求定义、架构设计、技术实现细节以及任务拆分。
-**[EN]** This document aims to provide complete requirements, architectural design, technical details, and task breakdowns for the next-generation "Generative Smart Routing" feature of mylocalrouter.
+**[ZH]** 本文档旨在为 myagentic-llm-gateway 的下一代“智能生成式路由”特性提供完整的需求定义、架构设计、技术实现细节以及任务拆分。
+**[EN]** This document aims to provide complete requirements, architectural design, technical details, and task breakdowns for the next-generation "Generative Smart Routing" feature of myagentic-llm-gateway.
 
 ## 1. 需求设计说明 (PRD) / Product Requirements Document
 

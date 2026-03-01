@@ -6,7 +6,7 @@ BASE_URL="${1:-$DEFAULT_BASE_URL}"
 ENDPOINT="${BASE_URL}/chat/completions"
 
 echo "================================================="
-echo "Testing LocalRouter Chat Completions API"
+echo "Testing Agentic LLM Gateway Chat Completions API"
 echo "Endpoint: $ENDPOINT"
 echo "================================================="
 
@@ -62,5 +62,5 @@ rm -f "$PAYLOAD_FILE"
 
 echo -e "\n\n================================================="
 echo "Test completed."
-echo "If connection was refused, check if LocalRouter is running on $BASE_URL"
+echo "If connection was refused, check if Agentic LLM Gateway is running on $BASE_URL"
 echo "Usage: ./test_chat.sh [http://custom-url:port/v1]"

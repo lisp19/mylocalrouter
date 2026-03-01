@@ -3,14 +3,14 @@ package main
 import (
 	"context"
 	"fmt"
-	"localrouter/pkg/logger"
+	"agentic-llm-gateway/pkg/logger"
 	"time"
 
-	"localrouter/internal/config"
-	"localrouter/internal/models"
-	"localrouter/internal/providers"
-	"localrouter/internal/router"
-	"localrouter/internal/server"
+	"agentic-llm-gateway/internal/config"
+	"agentic-llm-gateway/internal/models"
+	"agentic-llm-gateway/internal/providers"
+	"agentic-llm-gateway/internal/router"
+	"agentic-llm-gateway/internal/server"
 )
 
 // MockProvider generates fake OpenAI streaming responses for testing

@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"localrouter/internal/config"
-	"localrouter/internal/models"
+	"agentic-llm-gateway/internal/config"
+	"agentic-llm-gateway/internal/models"
 )
 
 func TestBuiltinLengthEvaluator(t *testing.T) {

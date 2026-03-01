@@ -1,6 +1,6 @@
-# LocalRouter
+# Agentic LLM Gateway
 
-LocalRouter 是一个轻量级、高性能的本地大模型网关，对外暴露标准 OpenAI API 协议。其核心职责是接收客户端请求，通过 HTTP 请求拉取远程的动态路由策略，并将请求无缝代理至后端的各大云端 Provider 或本地模型（Ollama/vLLM），最后将结果（支持流式 SSE）返回给客户端。
+Agentic LLM Gateway 是一个轻量级、高性能的本地大模型网关，对外暴露标准 OpenAI API 协议。其核心职责是接收客户端请求，通过 HTTP 请求拉取远程的动态路由策略，并将请求无缝代理至后端的各大云端 Provider 或本地模型（Ollama/vLLM），最后将结果（支持流式 SSE）返回给客户端。
 
 ## 核心特性
 1. **统一接入**：100% 兼容 OpenAI Chat Completions 协议。
@@ -12,11 +12,11 @@ LocalRouter 是一个轻量级、高性能的本地大模型网关，对外暴�
 依赖 Go 1.24 环境
 ```bash
 make build
-./bin/localrouter
+./bin/agentic-llm-gateway
 
 # 测试 Mock 服务器
 make build-mock
-./bin/localrouter-mock
+./bin/agentic-llm-gateway-mock
 ```
 使用 Docker：
 ```bash
