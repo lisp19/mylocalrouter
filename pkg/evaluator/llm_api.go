@@ -14,6 +14,7 @@ import (
 
 	"agentic-llm-gateway/internal/config"
 	"agentic-llm-gateway/internal/models"
+	"agentic-llm-gateway/pkg/logger"
 )
 
 // LLMAPIEvaluator evaluates using a standard OpenAI Chat API compatible endpoint
@@ -103,8 +104,9 @@ func (e *LLMAPIEvaluator) Evaluate(ctx context.Context, messages []models.Messag
 				"content": promptBuf.String(),
 			},
 		},
-		"temperature": 0.0,
-		"max_tokens":  1, // We only need 1 token (0 or 1)
+		"temperature":      0.0,
+		"max_tokens":       1, // We only need 1 token (0 or 1)
+		"disable_thinking": true,
 	}
 	if len(e.logitBias) > 0 {
 		reqBody["logit_bias"] = e.logitBias
@@ -114,6 +116,7 @@ func (e *LLMAPIEvaluator) Evaluate(ctx context.Context, messages []models.Messag
 	if err != nil {
 		return nil, err
 	}
+	logger.Printf("[Evaluator %s] Verbose Input: %s", e.name, string(reqBytes))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, e.endpoint, bytes.NewReader(reqBytes))
 	if err != nil {
@@ -132,6 +135,12 @@ func (e *LLMAPIEvaluator) Evaluate(ctx context.Context, messages []models.Messag
 		return nil, fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(body))
 	}
 
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	logger.Printf("[Evaluator %s] Verbose Output: %s", e.name, string(bodyBytes))
+
 	var openAIResp struct {
 		Choices []struct {
 			Message struct {
@@ -140,7 +149,7 @@ func (e *LLMAPIEvaluator) Evaluate(ctx context.Context, messages []models.Messag
 		} `json:"choices"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&openAIResp); err != nil {
+	if err := json.Unmarshal(bodyBytes, &openAIResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 

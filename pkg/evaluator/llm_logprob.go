@@ -14,6 +14,7 @@ import (
 
 	"agentic-llm-gateway/internal/config"
 	"agentic-llm-gateway/internal/models"
+	"agentic-llm-gateway/pkg/logger"
 )
 
 // LLMLogprobEvaluator uses log probabilities of specific tokens to return a continuous decimal score (float 0.0~1.0).
@@ -96,10 +97,11 @@ func (e *LLMLogprobEvaluator) Evaluate(ctx context.Context, messages []models.Me
 				"content": promptBuf.String(),
 			},
 		},
-		"temperature":  0.0,
-		"max_tokens":   1, // Only need one token
-		"logprobs":     true,
-		"top_logprobs": 2, // We need at least the top 2 logprobs to calculate the softmax
+		"temperature":      0.0,
+		"max_tokens":       1, // Only need one token
+		"logprobs":         true,
+		"top_logprobs":     2, // We need at least the top 2 logprobs to calculate the softmax
+		"disable_thinking": true,
 	}
 	if len(e.logitBias) > 0 {
 		reqBody["logit_bias"] = e.logitBias
@@ -109,6 +111,7 @@ func (e *LLMLogprobEvaluator) Evaluate(ctx context.Context, messages []models.Me
 	if err != nil {
 		return nil, err
 	}
+	logger.Printf("[Evaluator %s] Verbose Input: %s", e.name, string(reqBytes))
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodPost, e.endpoint, bytes.NewReader(reqBytes))
 	if err != nil {
@@ -127,6 +130,12 @@ func (e *LLMLogprobEvaluator) Evaluate(ctx context.Context, messages []models.Me
 		return nil, fmt.Errorf("HTTP error %d: %s", resp.StatusCode, string(body))
 	}
 
+	bodyBytes, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, fmt.Errorf("failed to read response body: %w", err)
+	}
+	logger.Printf("[Evaluator %s] Verbose Output: %s", e.name, string(bodyBytes))
+
 	type TopLogprob struct {
 		Token   string  `json:"token"`
 		Logprob float64 `json:"logprob"`
@@ -142,7 +151,7 @@ func (e *LLMLogprobEvaluator) Evaluate(ctx context.Context, messages []models.Me
 		} `json:"choices"`
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(&openAIResp); err != nil {
+	if err := json.Unmarshal(bodyBytes, &openAIResp); err != nil {
 		return nil, fmt.Errorf("failed to decode response: %w", err)
 	}
 
