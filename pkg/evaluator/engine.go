@@ -1,8 +1,8 @@
 package evaluator
 
 import (
-	"context"
 	"agentic-llm-gateway/pkg/logger"
+	"context"
 	"sync"
 	"time"
 
@@ -13,7 +13,7 @@ import (
 
 // EvaluateAll executes all configured evaluators concurrently
 func EvaluateAll(ctx context.Context, msgs []models.Message, globalTimeoutMs int, evals []Evaluator) map[string]float64 {
-	timeout := 100 * time.Millisecond
+	timeout := 10 * time.Second
 	if globalTimeoutMs > 0 {
 		timeout = time.Duration(globalTimeoutMs) * time.Millisecond
 	}

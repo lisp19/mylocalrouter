@@ -35,7 +35,7 @@ func NewLLMLogprobEvaluator(cfg config.EvaluatorConfig) (*LLMLogprobEvaluator, e
 		return nil, fmt.Errorf("invalid prompt template: %w", err)
 	}
 
-	timeout := 100 * time.Millisecond
+	timeout := 10 * time.Second
 	if cfg.TimeoutMs > 0 {
 		timeout = time.Duration(cfg.TimeoutMs) * time.Millisecond
 	}
